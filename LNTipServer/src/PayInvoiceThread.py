@@ -23,6 +23,33 @@ class PayInvoiceThread(Thread):
             error = "Failed",
             cause = str(errorMessage)
         )
+        
+    def handleTask(self, token, data):
+        self.logger.info('Thread started for payment: {}'.format(data))
+        paymentResponse = None
+        for x in range(3):
+            try:
+                paymentResponse = self.lnd.sendPayment(data['invoice'])
+                self.logger.info('paymentResponse: {}'.format(paymentResponse))
+            except Exception as e:
+                error = e
+            else:
+                if paymentResponse.payment_error:
+                    error = paymentResponse.payment_error
+                else:
+                    data['paymentResponse'] = {
+                        'payment_preimage': paymentResponse.payment_preimage.hex(),
+                        'payment_route': str(paymentResponse.payment_route),
+                    }
+                    self.logger.info('Payment succeeded with {}'.format(paymentResponse.payment_preimage.hex()))
+                    self.sfn.send_task_success(
+                        taskToken = token,
+                        output = json.dumps(data),
+                    )
+                    break
+            self.logger.error('Payment failed with {} {}'.format(type(error), error))
+        else:
+            self.handleError(token, error)
 
     def run(self):
         self.logger.info('Starting Thread...')
@@ -41,32 +68,7 @@ class PayInvoiceThread(Thread):
                     token = response['taskToken']
                     data = json.loads(response['input'])
 
-                    self.logger.info(data)
-
-                    paymentResponse = None
-                    for x in range(3):
-                        try:
-                            paymentResponse = self.lnd.sendPayment(data['invoice'])
-                            self.logger.info('paymentResponse: {}'.format(paymentResponse))
-                        except Exception as e:
-                            error = e
-                        else:
-                            if paymentResponse.payment_error:
-                                error = paymentResponse.payment_error
-                            else:
-                                data['paymentResponse'] = {
-                                    'payment_preimage': paymentResponse.payment_preimage.hex(),
-                                    'payment_route': str(paymentResponse.payment_route),
-                                }
-                                self.logger.info('Payment succeeded with {}'.format(paymentResponse.payment_preimage.hex()))
-                                self.sfn.send_task_success(
-                                    taskToken = token,
-                                    output = json.dumps(data),
-                                )
-                                break
-                        self.logger.error('Payment failed with {} {}'.format(type(error), error))
-                    else:
-                        self.handleError(token, error)
+                    Thread(target = self.handleTask, args = (token, data)).start()
 
             except grpc._channel._Rendezvous as e:
                 self.logger.error('LND appears to be down...')
