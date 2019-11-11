@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import traceback
+from botocore.client import Config
 from lnd import Client
 from threading import Thread
 from time import sleep
@@ -12,7 +13,13 @@ class InvoiceSubscriptionThread(Thread):
     def __init__(self):
         super().__init__(name='ISThread')
         self.lnd = Client()
-        self.lamb = boto3.client('lambda', region_name = 'us-west-2')
+        config = Config(
+            read_timeout = 65,
+            retries = dict(
+                max_attempts = 10
+            )
+        )
+        self.lamb = boto3.client('lambda', config = config, region_name = 'us-west-2')
 
         homedir = "{}/".format(os.path.expanduser("~"))
         directory = "{0}.{1}".format(homedir, "lntipbot")

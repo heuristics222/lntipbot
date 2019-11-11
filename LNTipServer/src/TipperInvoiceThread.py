@@ -11,7 +11,12 @@ from time import sleep
 class TipperInvoiceThread(Thread):
     def __init__(self):
         super().__init__(name='TIThread')
-        config = Config(read_timeout=65)
+        config = Config(
+            read_timeout = 65,
+            retries = dict(
+                max_attempts = 10
+            )
+        )
         self.sfn = boto3.client('stepfunctions', config = config, region_name = 'us-west-2')
         self.lnd = Client()
         self.logger = logging.getLogger(name='TipperInvoiceThread')
@@ -50,6 +55,8 @@ class TipperInvoiceThread(Thread):
                             error = "Failed",
                             cause = str(e)
                         )
+
+                    sleep(5)
 
             except grpc._channel._Rendezvous as e:
                 self.logger.error('LND appears to be down...')

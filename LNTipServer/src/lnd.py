@@ -42,8 +42,24 @@ class Client:
         )
         return self.stub.SubscribeInvoices(request)
 
-    def sendPayment(self, invoice):
-        request = ln.SendRequest(
-            payment_request=invoice
-        )
+    def sendPayment(self, invoice, amt = None):
+        if amt:
+            if amt < 90000:
+                feeLimit = 10
+            else:
+                feeLimit = 15
+            request = ln.SendRequest(
+                payment_request=invoice,
+                fee_limit=ln.FeeLimit(
+                    fixed=feeLimit
+                ),
+                amt=amt
+            )
+        else:
+            request = ln.SendRequest(
+                payment_request=invoice,
+                fee_limit=ln.FeeLimit(
+                    fixed=10
+                )
+            )
         return self.stub.SendPaymentSync(request)

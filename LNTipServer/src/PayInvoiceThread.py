@@ -11,7 +11,12 @@ from time import sleep
 class PayInvoiceThread(Thread):
     def __init__(self):
         super().__init__(name='PIThread')
-        config = Config(read_timeout=65)
+        config = Config(
+            read_timeout = 65,
+            retries = dict(
+                max_attempts = 10
+            )
+        )
         self.sfn = boto3.client('stepfunctions', config = config, region_name = 'us-west-2')
         self.lnd = Client()
         self.logger = logging.getLogger(name='PayInvoiceThread')
@@ -27,9 +32,9 @@ class PayInvoiceThread(Thread):
     def handleTask(self, token, data):
         self.logger.info('Thread started for payment: {}'.format(data))
         paymentResponse = None
-        for x in range(3):
+        for x in range(1):
             try:
-                paymentResponse = self.lnd.sendPayment(data['invoice'])
+                paymentResponse = self.lnd.sendPayment(data['invoice'], int(data['amount'] / 1000000))
                 self.logger.info('paymentResponse: {}'.format(paymentResponse))
             except Exception as e:
                 error = e
@@ -69,6 +74,8 @@ class PayInvoiceThread(Thread):
                     data = json.loads(response['input'])
 
                     Thread(target = self.handleTask, args = (token, data)).start()
+
+                    sleep(10)
 
             except grpc._channel._Rendezvous as e:
                 self.logger.error('LND appears to be down...')
