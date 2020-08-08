@@ -1,5 +1,7 @@
 import rpc_pb2 as ln
 import rpc_pb2_grpc as lnrpc
+import invoices_pb2 as invoices
+import invoices_pb2_grpc as invoicesrpc
 import grpc
 import os
 import codecs
@@ -16,6 +18,7 @@ class Client:
         channel = grpc.secure_channel('localhost:10009', combinedCredentials)
 
         self.stub = lnrpc.LightningStub(channel)
+        self.invoicesstub = invoicesrpc.InvoicesStub(channel)
         self.macaroon = codecs.encode(open(os.path.expanduser('~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon'), 'rb').read(), 'hex')
 
     def metadataCallback(self, context, callback):
@@ -30,10 +33,26 @@ class Client:
         response = self.stub.AddInvoice(request)
         return response
 
+    def requestHoldInvoice(self, amount, hash, expiry = 1200):
+        request = invoices.AddHoldInvoiceRequest(
+            memo = 'Test tip',
+            value = amount,
+            expiry = expiry,
+            hash = hash
+        )
+        response = self.invoicesstub.AddHoldInvoice(request)
+        return response
+
     def getInfo(self):
         request = ln.GetInfoRequest()
         response = self.stub.GetInfo(request)
         return response
+
+    def subscribeSingleInvoice(self, hash):
+        request = invoices.SubscribeSingleInvoiceRequest(
+            r_hash = hash
+        )
+        return self.invoicesstub.SubscribeSingleInvoice(request)
 
     def subscribeInvoices(self, addIndex = 0, settleIndex = 0):
         request = ln.InvoiceSubscription(
@@ -44,10 +63,13 @@ class Client:
 
     def sendPayment(self, invoice, amt = None):
         if amt:
-            if amt < 90000:
+            if amt < 100000:
                 feeLimit = 10
+            elif amt < 200000:
+                feeLimit = 20
             else:
-                feeLimit = 15
+                feeLimit = 25
+            
             request = ln.SendRequest(
                 payment_request=invoice,
                 fee_limit=ln.FeeLimit(

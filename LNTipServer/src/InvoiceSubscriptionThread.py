@@ -63,6 +63,11 @@ class InvoiceSubscriptionThread(Thread):
 
                         if 'FunctionError' in response:
                             self.logger.error(response)
+                    else:
+                        self.logger.info({
+                            'memo': invoice.memo,
+                            'r_hash': invoice.r_hash
+                        })
 
                 sleep(1)
 

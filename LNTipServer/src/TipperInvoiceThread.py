@@ -1,12 +1,16 @@
+import binascii
 import boto3
 import grpc
+import hashlib
 import json
 import logging
+import os
 import traceback
 from botocore.client import Config
 from lnd import Client
 from threading import Thread
 from time import sleep
+from SingleInvoiceListener import SingleInvoiceListener
 
 class TipperInvoiceThread(Thread):
     def __init__(self):
@@ -43,7 +47,16 @@ class TipperInvoiceThread(Thread):
 
                         self.logger.info(data)
 
-                        data['tipperInvoice'] = self.lnd.requestInvoice(int(data['amount']), data['id']).payment_request
+                        if data['type'] == 'HodlTip':
+                            preimage = os.urandom(32)
+                            hash = hashlib.sha256(preimage)
+                            data['preimage'] = binascii.hexlify(preimage).decode()
+                            data['hash'] = hash.hexdigest()
+                            data['tipperInvoice'] = self.lnd.requestHoldInvoice(int(data['amount']), hash.digest(), 172800).payment_request
+                            SingleInvoiceListener(preimage, hash.digest())
+                        else:
+                            data['tipperInvoice'] = self.lnd.requestInvoice(int(data['amount']), data['id']).payment_request
+
                         self.sfn.send_task_success(
                             taskToken = token,
                             output = json.dumps(data),
