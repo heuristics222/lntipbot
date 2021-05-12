@@ -13,7 +13,6 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
-from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 import rpc_pb2 as rpc__pb2
 
 
@@ -21,9 +20,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='invoices.proto',
   package='invoicesrpc',
   syntax='proto3',
-  serialized_pb=_b('\n\x0einvoices.proto\x12\x0binvoicesrpc\x1a\x1cgoogle/api/annotations.proto\x1a\trpc.proto\"(\n\x10\x43\x61ncelInvoiceMsg\x12\x14\n\x0cpayment_hash\x18\x01 \x01(\x0c\"\x13\n\x11\x43\x61ncelInvoiceResp\"\xe4\x01\n\x15\x41\x64\x64HoldInvoiceRequest\x12\x0c\n\x04memo\x18\x01 \x01(\t\x12\x0c\n\x04hash\x18\x02 \x01(\x0c\x12\r\n\x05value\x18\x03 \x01(\x03\x12\x12\n\nvalue_msat\x18\n \x01(\x03\x12\x18\n\x10\x64\x65scription_hash\x18\x04 \x01(\x0c\x12\x0e\n\x06\x65xpiry\x18\x05 \x01(\x03\x12\x15\n\rfallback_addr\x18\x06 \x01(\t\x12\x13\n\x0b\x63ltv_expiry\x18\x07 \x01(\x04\x12%\n\x0broute_hints\x18\x08 \x03(\x0b\x32\x10.lnrpc.RouteHint\x12\x0f\n\x07private\x18\t \x01(\x08\"-\n\x12\x41\x64\x64HoldInvoiceResp\x12\x17\n\x0fpayment_request\x18\x01 \x01(\t\"$\n\x10SettleInvoiceMsg\x12\x10\n\x08preimage\x18\x01 \x01(\x0c\"\x13\n\x11SettleInvoiceResp\"5\n\x1dSubscribeSingleInvoiceRequest\x12\x0e\n\x06r_hash\x18\x02 \x01(\x0cJ\x04\x08\x01\x10\x02\x32\xd9\x02\n\x08Invoices\x12V\n\x16SubscribeSingleInvoice\x12*.invoicesrpc.SubscribeSingleInvoiceRequest\x1a\x0e.lnrpc.Invoice0\x01\x12N\n\rCancelInvoice\x12\x1d.invoicesrpc.CancelInvoiceMsg\x1a\x1e.invoicesrpc.CancelInvoiceResp\x12U\n\x0e\x41\x64\x64HoldInvoice\x12\".invoicesrpc.AddHoldInvoiceRequest\x1a\x1f.invoicesrpc.AddHoldInvoiceResp\x12N\n\rSettleInvoice\x12\x1d.invoicesrpc.SettleInvoiceMsg\x1a\x1e.invoicesrpc.SettleInvoiceRespB3Z1github.com/lightningnetwork/lnd/lnrpc/invoicesrpcb\x06proto3')
+  serialized_pb=_b('\n\x0einvoices.proto\x12\x0binvoicesrpc\x1a\trpc.proto\"(\n\x10\x43\x61ncelInvoiceMsg\x12\x14\n\x0cpayment_hash\x18\x01 \x01(\x0c\"\x13\n\x11\x43\x61ncelInvoiceResp\"\xe4\x01\n\x15\x41\x64\x64HoldInvoiceRequest\x12\x0c\n\x04memo\x18\x01 \x01(\t\x12\x0c\n\x04hash\x18\x02 \x01(\x0c\x12\r\n\x05value\x18\x03 \x01(\x03\x12\x12\n\nvalue_msat\x18\n \x01(\x03\x12\x18\n\x10\x64\x65scription_hash\x18\x04 \x01(\x0c\x12\x0e\n\x06\x65xpiry\x18\x05 \x01(\x03\x12\x15\n\rfallback_addr\x18\x06 \x01(\t\x12\x13\n\x0b\x63ltv_expiry\x18\x07 \x01(\x04\x12%\n\x0broute_hints\x18\x08 \x03(\x0b\x32\x10.lnrpc.RouteHint\x12\x0f\n\x07private\x18\t \x01(\x08\"-\n\x12\x41\x64\x64HoldInvoiceResp\x12\x17\n\x0fpayment_request\x18\x01 \x01(\t\"$\n\x10SettleInvoiceMsg\x12\x10\n\x08preimage\x18\x01 \x01(\x0c\"\x13\n\x11SettleInvoiceResp\"5\n\x1dSubscribeSingleInvoiceRequest\x12\x0e\n\x06r_hash\x18\x02 \x01(\x0cJ\x04\x08\x01\x10\x02\x32\xd9\x02\n\x08Invoices\x12V\n\x16SubscribeSingleInvoice\x12*.invoicesrpc.SubscribeSingleInvoiceRequest\x1a\x0e.lnrpc.Invoice0\x01\x12N\n\rCancelInvoice\x12\x1d.invoicesrpc.CancelInvoiceMsg\x1a\x1e.invoicesrpc.CancelInvoiceResp\x12U\n\x0e\x41\x64\x64HoldInvoice\x12\".invoicesrpc.AddHoldInvoiceRequest\x1a\x1f.invoicesrpc.AddHoldInvoiceResp\x12N\n\rSettleInvoice\x12\x1d.invoicesrpc.SettleInvoiceMsg\x1a\x1e.invoicesrpc.SettleInvoiceRespB3Z1github.com/lightningnetwork/lnd/lnrpc/invoicesrpcb\x06proto3')
   ,
-  dependencies=[google_dot_api_dot_annotations__pb2.DESCRIPTOR,rpc__pb2.DESCRIPTOR,])
+  dependencies=[rpc__pb2.DESCRIPTOR,])
 
 
 
@@ -54,8 +53,8 @@ _CANCELINVOICEMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=72,
-  serialized_end=112,
+  serialized_start=42,
+  serialized_end=82,
 )
 
 
@@ -78,8 +77,8 @@ _CANCELINVOICERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=114,
-  serialized_end=133,
+  serialized_start=84,
+  serialized_end=103,
 )
 
 
@@ -172,8 +171,8 @@ _ADDHOLDINVOICEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=136,
-  serialized_end=364,
+  serialized_start=106,
+  serialized_end=334,
 )
 
 
@@ -203,8 +202,8 @@ _ADDHOLDINVOICERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=366,
-  serialized_end=411,
+  serialized_start=336,
+  serialized_end=381,
 )
 
 
@@ -234,8 +233,8 @@ _SETTLEINVOICEMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=413,
-  serialized_end=449,
+  serialized_start=383,
+  serialized_end=419,
 )
 
 
@@ -258,8 +257,8 @@ _SETTLEINVOICERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=451,
-  serialized_end=470,
+  serialized_start=421,
+  serialized_end=440,
 )
 
 
@@ -289,8 +288,8 @@ _SUBSCRIBESINGLEINVOICEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=472,
-  serialized_end=525,
+  serialized_start=442,
+  serialized_end=495,
 )
 
 _ADDHOLDINVOICEREQUEST.fields_by_name['route_hints'].message_type = rpc__pb2._ROUTEHINT
@@ -362,8 +361,8 @@ _INVOICES = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=528,
-  serialized_end=873,
+  serialized_start=498,
+  serialized_end=843,
   methods=[
   _descriptor.MethodDescriptor(
     name='SubscribeSingleInvoice',

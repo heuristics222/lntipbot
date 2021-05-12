@@ -24,7 +24,7 @@ class Client:
     def metadataCallback(self, context, callback):
         callback([('macaroon', self.macaroon)], None)
 
-    def requestInvoice(self, amount, tipId, expiry = 1200):
+    def requestInvoice(self, amount, tipId, expiry = 86400):
         request = ln.Invoice(
             memo = tipId,
             value = amount,

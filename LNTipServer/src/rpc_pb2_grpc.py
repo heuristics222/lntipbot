@@ -4,170 +4,26 @@ import grpc
 import rpc_pb2 as rpc__pb2
 
 
-class WalletUnlockerStub(object):
-  """*
-  Comments in this file will be directly parsed into the API
-  Documentation as descriptions of the associated method, message, or field.
-  These descriptions should go right above the definition of the object, and
-  can be in either block or /// comment format.
-
-  One edge case exists where a // comment followed by a /// comment in the
-  next line will cause the description not to show up in the documentation. In
-  that instance, simply separate the two comments with a blank line.
-
-  An RPC method can be matched to an lncli command by placing a line in the
-  beginning of the description in exactly the following format:
-  lncli: `methodname`
-
-  Failure to specify the exact name of the command will cause documentation
-  generation to fail.
-
-  More information on how exactly the gRPC documentation is generated from
-  this proto file can be found here:
-  https://github.com/lightninglabs/lightning-api
-
-  The WalletUnlocker service is used to set up a wallet password for
-  lnd at first startup, and unlock a previously set up wallet.
-  """
-
-  def __init__(self, channel):
-    """Constructor.
-
-    Args:
-      channel: A grpc.Channel.
-    """
-    self.GenSeed = channel.unary_unary(
-        '/lnrpc.WalletUnlocker/GenSeed',
-        request_serializer=rpc__pb2.GenSeedRequest.SerializeToString,
-        response_deserializer=rpc__pb2.GenSeedResponse.FromString,
-        )
-    self.InitWallet = channel.unary_unary(
-        '/lnrpc.WalletUnlocker/InitWallet',
-        request_serializer=rpc__pb2.InitWalletRequest.SerializeToString,
-        response_deserializer=rpc__pb2.InitWalletResponse.FromString,
-        )
-    self.UnlockWallet = channel.unary_unary(
-        '/lnrpc.WalletUnlocker/UnlockWallet',
-        request_serializer=rpc__pb2.UnlockWalletRequest.SerializeToString,
-        response_deserializer=rpc__pb2.UnlockWalletResponse.FromString,
-        )
-    self.ChangePassword = channel.unary_unary(
-        '/lnrpc.WalletUnlocker/ChangePassword',
-        request_serializer=rpc__pb2.ChangePasswordRequest.SerializeToString,
-        response_deserializer=rpc__pb2.ChangePasswordResponse.FromString,
-        )
-
-
-class WalletUnlockerServicer(object):
-  """*
-  Comments in this file will be directly parsed into the API
-  Documentation as descriptions of the associated method, message, or field.
-  These descriptions should go right above the definition of the object, and
-  can be in either block or /// comment format.
-
-  One edge case exists where a // comment followed by a /// comment in the
-  next line will cause the description not to show up in the documentation. In
-  that instance, simply separate the two comments with a blank line.
-
-  An RPC method can be matched to an lncli command by placing a line in the
-  beginning of the description in exactly the following format:
-  lncli: `methodname`
-
-  Failure to specify the exact name of the command will cause documentation
-  generation to fail.
-
-  More information on how exactly the gRPC documentation is generated from
-  this proto file can be found here:
-  https://github.com/lightninglabs/lightning-api
-
-  The WalletUnlocker service is used to set up a wallet password for
-  lnd at first startup, and unlock a previously set up wallet.
-  """
-
-  def GenSeed(self, request, context):
-    """*
-    GenSeed is the first method that should be used to instantiate a new lnd
-    instance. This method allows a caller to generate a new aezeed cipher seed
-    given an optional passphrase. If provided, the passphrase will be necessary
-    to decrypt the cipherseed to expose the internal wallet seed.
-
-    Once the cipherseed is obtained and verified by the user, the InitWallet
-    method should be used to commit the newly generated seed, and create the
-    wallet.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def InitWallet(self, request, context):
-    """*
-    InitWallet is used when lnd is starting up for the first time to fully
-    initialize the daemon and its internal wallet. At the very least a wallet
-    password must be provided. This will be used to encrypt sensitive material
-    on disk.
-
-    In the case of a recovery scenario, the user can also specify their aezeed
-    mnemonic and passphrase. If set, then the daemon will use this prior state
-    to initialize its internal wallet.
-
-    Alternatively, this can be used along with the GenSeed RPC to obtain a
-    seed, then present it to the user. Once it has been verified by the user,
-    the seed can be fed into this RPC in order to commit the new wallet.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def UnlockWallet(self, request, context):
-    """* lncli: `unlock`
-    UnlockWallet is used at startup of lnd to provide a password to unlock
-    the wallet database.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def ChangePassword(self, request, context):
-    """* lncli: `changepassword`
-    ChangePassword changes the password of the encrypted wallet. This will
-    automatically unlock the wallet database if successful.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-
-def add_WalletUnlockerServicer_to_server(servicer, server):
-  rpc_method_handlers = {
-      'GenSeed': grpc.unary_unary_rpc_method_handler(
-          servicer.GenSeed,
-          request_deserializer=rpc__pb2.GenSeedRequest.FromString,
-          response_serializer=rpc__pb2.GenSeedResponse.SerializeToString,
-      ),
-      'InitWallet': grpc.unary_unary_rpc_method_handler(
-          servicer.InitWallet,
-          request_deserializer=rpc__pb2.InitWalletRequest.FromString,
-          response_serializer=rpc__pb2.InitWalletResponse.SerializeToString,
-      ),
-      'UnlockWallet': grpc.unary_unary_rpc_method_handler(
-          servicer.UnlockWallet,
-          request_deserializer=rpc__pb2.UnlockWalletRequest.FromString,
-          response_serializer=rpc__pb2.UnlockWalletResponse.SerializeToString,
-      ),
-      'ChangePassword': grpc.unary_unary_rpc_method_handler(
-          servicer.ChangePassword,
-          request_deserializer=rpc__pb2.ChangePasswordRequest.FromString,
-          response_serializer=rpc__pb2.ChangePasswordResponse.SerializeToString,
-      ),
-  }
-  generic_handler = grpc.method_handlers_generic_handler(
-      'lnrpc.WalletUnlocker', rpc_method_handlers)
-  server.add_generic_rpc_handlers((generic_handler,))
-
-
 class LightningStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """
+  Comments in this file will be directly parsed into the API
+  Documentation as descriptions of the associated method, message, or field.
+  These descriptions should go right above the definition of the object, and
+  can be in either block or // comment format.
+
+  An RPC method can be matched to an lncli command by placing a line in the
+  beginning of the description in exactly the following format:
+  lncli: `methodname`
+
+  Failure to specify the exact name of the command will cause documentation
+  generation to fail.
+
+  More information on how exactly the gRPC documentation is generated from
+  this proto file can be found here:
+  https://github.com/lightninglabs/lightning-api
+
+  Lightning is the main RPC server of the daemon.
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -254,6 +110,11 @@ class LightningStub(object):
         '/lnrpc.Lightning/GetInfo',
         request_serializer=rpc__pb2.GetInfoRequest.SerializeToString,
         response_deserializer=rpc__pb2.GetInfoResponse.FromString,
+        )
+    self.GetRecoveryInfo = channel.unary_unary(
+        '/lnrpc.Lightning/GetRecoveryInfo',
+        request_serializer=rpc__pb2.GetRecoveryInfoRequest.SerializeToString,
+        response_deserializer=rpc__pb2.GetRecoveryInfoResponse.FromString,
         )
     self.PendingChannels = channel.unary_unary(
         '/lnrpc.Lightning/PendingChannels',
@@ -450,14 +311,36 @@ class LightningStub(object):
         request_serializer=rpc__pb2.BakeMacaroonRequest.SerializeToString,
         response_deserializer=rpc__pb2.BakeMacaroonResponse.FromString,
         )
+    self.ListPermissions = channel.unary_unary(
+        '/lnrpc.Lightning/ListPermissions',
+        request_serializer=rpc__pb2.ListPermissionsRequest.SerializeToString,
+        response_deserializer=rpc__pb2.ListPermissionsResponse.FromString,
+        )
 
 
 class LightningServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """
+  Comments in this file will be directly parsed into the API
+  Documentation as descriptions of the associated method, message, or field.
+  These descriptions should go right above the definition of the object, and
+  can be in either block or // comment format.
+
+  An RPC method can be matched to an lncli command by placing a line in the
+  beginning of the description in exactly the following format:
+  lncli: `methodname`
+
+  Failure to specify the exact name of the command will cause documentation
+  generation to fail.
+
+  More information on how exactly the gRPC documentation is generated from
+  this proto file can be found here:
+  https://github.com/lightninglabs/lightning-api
+
+  Lightning is the main RPC server of the daemon.
+  """
 
   def WalletBalance(self, request, context):
-    """* lncli: `walletbalance`
+    """lncli: `walletbalance`
     WalletBalance returns total unspent outputs(confirmed and unconfirmed), all
     confirmed unspent outputs and all unconfirmed unspent outputs under control
     of the wallet.
@@ -467,7 +350,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ChannelBalance(self, request, context):
-    """* lncli: `channelbalance`
+    """lncli: `channelbalance`
     ChannelBalance returns the total funds available across all open channels
     in satoshis.
     """
@@ -476,7 +359,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetTransactions(self, request, context):
-    """* lncli: `listchaintxns`
+    """lncli: `listchaintxns`
     GetTransactions returns a list describing all the known transactions
     relevant to the wallet.
     """
@@ -485,16 +368,21 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def EstimateFee(self, request, context):
-    """* lncli: `estimatefee`
+    """lncli: `estimatefee`
     EstimateFee asks the chain backend to estimate the fee rate and total fees
     for a transaction that pays to multiple specified outputs.
+
+    When using REST, the `AddrToAmount` map type can be set by appending
+    `&AddrToAmount[<address>]=<amount_to_send>` to the URL. Unfortunately this
+    map type doesn't appear in the REST API documentation because of a bug in
+    the grpc-gateway library.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def SendCoins(self, request, context):
-    """* lncli: `sendcoins`
+    """lncli: `sendcoins`
     SendCoins executes a request to send coins to a particular address. Unlike
     SendMany, this RPC call only allows creating a single output at a time. If
     neither target_conf, or sat_per_byte are set, then the internal wallet will
@@ -506,7 +394,9 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ListUnspent(self, request, context):
-    """* lncli: `listunspent`
+    """lncli: `listunspent`
+    Deprecated, use walletrpc.ListUnspent instead.
+
     ListUnspent returns a list of all utxos spendable by the wallet with a
     number of confirmations between the specified minimum and maximum.
     """
@@ -515,7 +405,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SubscribeTransactions(self, request, context):
-    """*
+    """
     SubscribeTransactions creates a uni-directional stream from the server to
     the client in which any newly discovered transactions relevant to the
     wallet are sent over.
@@ -525,7 +415,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SendMany(self, request, context):
-    """* lncli: `sendmany`
+    """lncli: `sendmany`
     SendMany handles a request for a transaction that creates multiple specified
     outputs in parallel. If neither target_conf, or sat_per_byte are set, then
     the internal wallet will consult its fee model to determine a fee for the
@@ -536,7 +426,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def NewAddress(self, request, context):
-    """* lncli: `newaddress`
+    """lncli: `newaddress`
     NewAddress creates a new address under control of the local wallet.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -544,7 +434,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SignMessage(self, request, context):
-    """* lncli: `signmessage`
+    """lncli: `signmessage`
     SignMessage signs a message with this node's private key. The returned
     signature string is `zbase32` encoded and pubkey recoverable, meaning that
     only the message digest and signature are needed for verification.
@@ -554,7 +444,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def VerifyMessage(self, request, context):
-    """* lncli: `verifymessage`
+    """lncli: `verifymessage`
     VerifyMessage verifies a signature over a msg. The signature must be
     zbase32 encoded and signed by an active node in the resident node's
     channel database. In addition to returning the validity of the signature,
@@ -565,7 +455,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ConnectPeer(self, request, context):
-    """* lncli: `connect`
+    """lncli: `connect`
     ConnectPeer attempts to establish a connection to a remote peer. This is at
     the networking level, and is used for communication between nodes. This is
     distinct from establishing a channel with a peer.
@@ -575,7 +465,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def DisconnectPeer(self, request, context):
-    """* lncli: `disconnect`
+    """lncli: `disconnect`
     DisconnectPeer attempts to disconnect one peer from another identified by a
     given pubKey. In the case that we currently have a pending or active channel
     with the target peer, then this action will be not be allowed.
@@ -585,7 +475,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ListPeers(self, request, context):
-    """* lncli: `listpeers`
+    """lncli: `listpeers`
     ListPeers returns a verbose listing of all currently active peers.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -593,7 +483,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SubscribePeerEvents(self, request, context):
-    """*
+    """
     SubscribePeerEvents creates a uni-directional stream from the server to
     the client in which any events relevant to the state of peers are sent
     over. Events include peers going online and offline.
@@ -603,7 +493,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetInfo(self, request, context):
-    """* lncli: `getinfo`
+    """lncli: `getinfo`
     GetInfo returns general information concerning the lightning node including
     it's identity pubkey, alias, the chains it is connected to, and information
     concerning the number of open+pending channels.
@@ -612,10 +502,20 @@ class LightningServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetRecoveryInfo(self, request, context):
+    """* lncli: `getrecoveryinfo`
+    GetRecoveryInfo returns information concerning the recovery mode including
+    whether it's in a recovery mode, whether the recovery is finished, and the
+    progress made so far.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def PendingChannels(self, request, context):
     """TODO(roasbeef): merge with below with bool?
 
-    * lncli: `pendingchannels`
+    lncli: `pendingchannels`
     PendingChannels returns a list of all the channels that are currently
     considered "pending". A channel is pending if it has finished the funding
     workflow and is waiting for confirmations for the funding txn, or is in the
@@ -626,7 +526,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ListChannels(self, request, context):
-    """* lncli: `listchannels`
+    """lncli: `listchannels`
     ListChannels returns a description of all the open channels that this node
     is a participant in.
     """
@@ -635,7 +535,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SubscribeChannelEvents(self, request, context):
-    """*
+    """
     SubscribeChannelEvents creates a uni-directional stream from the server to
     the client in which any updates relevant to the state of the channels are
     sent over. Events include new active channels, inactive channels, and closed
@@ -646,7 +546,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ClosedChannels(self, request, context):
-    """* lncli: `closedchannels`
+    """lncli: `closedchannels`
     ClosedChannels returns a description of all the closed channels that
     this node was a participant in.
     """
@@ -655,7 +555,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def OpenChannelSync(self, request, context):
-    """*
+    """
     OpenChannelSync is a synchronous version of the OpenChannel RPC call. This
     call is meant to be consumed by clients to the REST proxy. As with all
     other sync calls, all byte slices are intended to be populated as hex
@@ -666,7 +566,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def OpenChannel(self, request, context):
-    """* lncli: `openchannel`
+    """lncli: `openchannel`
     OpenChannel attempts to open a singly funded channel specified in the
     request to a remote peer. Users are able to specify a target number of
     blocks that the funding transaction should be confirmed in, or a manual fee
@@ -681,7 +581,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def FundingStateStep(self, request, context):
-    """*
+    """
     FundingStateStep is an advanced funding related call that allows the caller
     to either execute some preparatory steps for a funding workflow, or
     manually progress a funding workflow. The primary way a funding flow is
@@ -696,7 +596,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ChannelAcceptor(self, request_iterator, context):
-    """*
+    """
     ChannelAcceptor dispatches a bi-directional streaming RPC in which
     OpenChannel requests are sent to the client and the client responds with
     a boolean that tells LND whether or not to accept the channel. This allows
@@ -708,7 +608,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def CloseChannel(self, request, context):
-    """* lncli: `closechannel`
+    """lncli: `closechannel`
     CloseChannel attempts to close an active channel identified by its channel
     outpoint (ChannelPoint). The actions of this method can additionally be
     augmented to attempt a force close after a timeout period in the case of an
@@ -722,19 +622,21 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def AbandonChannel(self, request, context):
-    """* lncli: `abandonchannel`
+    """lncli: `abandonchannel`
     AbandonChannel removes all channel state from the database except for a
     close summary. This method can be used to get rid of permanently unusable
-    channels due to bugs fixed in newer versions of lnd. Only available
-    when in debug builds of lnd.
+    channels due to bugs fixed in newer versions of lnd. This method can also be
+    used to remove externally funded channels where the funding transaction was
+    never broadcast. Only available for non-externally funded channels in dev
+    build.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def SendPayment(self, request_iterator, context):
-    """* lncli: `sendpayment`
-    Deprecated, use routerrpc.SendPayment. SendPayment dispatches a
+    """lncli: `sendpayment`
+    Deprecated, use routerrpc.SendPaymentV2. SendPayment dispatches a
     bi-directional streaming RPC for sending payments through the Lightning
     Network. A single RPC invocation creates a persistent bi-directional
     stream allowing clients to rapidly send payments through the Lightning
@@ -745,7 +647,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SendPaymentSync(self, request, context):
-    """*
+    """
     SendPaymentSync is the synchronous non-streaming version of SendPayment.
     This RPC is intended to be consumed by clients of the REST proxy.
     Additionally, this RPC expects the destination's public key and the payment
@@ -756,18 +658,19 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SendToRoute(self, request_iterator, context):
-    """* lncli: `sendtoroute`
-    SendToRoute is a bi-directional streaming RPC for sending payment through
-    the Lightning Network. This method differs from SendPayment in that it
-    allows users to specify a full route manually. This can be used for things
-    like rebalancing, and atomic swaps.
+    """lncli: `sendtoroute`
+    Deprecated, use routerrpc.SendToRouteV2. SendToRoute is a bi-directional
+    streaming RPC for sending payment through the Lightning Network. This
+    method differs from SendPayment in that it allows users to specify a full
+    route manually. This can be used for things like rebalancing, and atomic
+    swaps.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def SendToRouteSync(self, request, context):
-    """*
+    """
     SendToRouteSync is a synchronous version of SendToRoute. It Will block
     until the payment either fails or succeeds.
     """
@@ -776,7 +679,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def AddInvoice(self, request, context):
-    """* lncli: `addinvoice`
+    """lncli: `addinvoice`
     AddInvoice attempts to add a new invoice to the invoice database. Any
     duplicated invoices are rejected, therefore all invoices *must* have a
     unique payment preimage.
@@ -786,7 +689,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ListInvoices(self, request, context):
-    """* lncli: `listinvoices`
+    """lncli: `listinvoices`
     ListInvoices returns a list of all the invoices currently stored within the
     database. Any active debug invoices are ignored. It has full support for
     paginated responses, allowing users to query for specific invoices through
@@ -800,7 +703,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def LookupInvoice(self, request, context):
-    """* lncli: `lookupinvoice`
+    """lncli: `lookupinvoice`
     LookupInvoice attempts to look up an invoice according to its payment hash.
     The passed payment hash *must* be exactly 32 bytes, if not, an error is
     returned.
@@ -810,7 +713,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SubscribeInvoices(self, request, context):
-    """*
+    """
     SubscribeInvoices returns a uni-directional stream (server -> client) for
     notifying the client of newly added/settled invoices. The caller can
     optionally specify the add_index and/or the settle_index. If the add_index
@@ -826,7 +729,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def DecodePayReq(self, request, context):
-    """* lncli: `decodepayreq`
+    """lncli: `decodepayreq`
     DecodePayReq takes an encoded payment request string and attempts to decode
     it, returning a full description of the conditions encoded within the
     payment request.
@@ -836,7 +739,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ListPayments(self, request, context):
-    """* lncli: `listpayments`
+    """lncli: `listpayments`
     ListPayments returns a list of all outgoing payments.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -844,7 +747,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def DeleteAllPayments(self, request, context):
-    """*
+    """
     DeleteAllPayments deletes all outgoing payments from DB.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -852,7 +755,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def DescribeGraph(self, request, context):
-    """* lncli: `describegraph`
+    """lncli: `describegraph`
     DescribeGraph returns a description of the latest graph state from the
     point of view of the node. The graph information is partitioned into two
     components: all the nodes/vertexes, and all the edges that connect the
@@ -865,7 +768,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetNodeMetrics(self, request, context):
-    """* lncli: `getnodemetrics`
+    """lncli: `getnodemetrics`
     GetNodeMetrics returns node metrics calculated from the graph. Currently
     the only supported metric is betweenness centrality of individual nodes.
     """
@@ -874,7 +777,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetChanInfo(self, request, context):
-    """* lncli: `getchaninfo`
+    """lncli: `getchaninfo`
     GetChanInfo returns the latest authenticated network announcement for the
     given channel identified by its channel ID: an 8-byte integer which
     uniquely identifies the location of transaction's funding output within the
@@ -885,7 +788,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetNodeInfo(self, request, context):
-    """* lncli: `getnodeinfo`
+    """lncli: `getnodeinfo`
     GetNodeInfo returns the latest advertised, aggregated, and authenticated
     channel information for the specified node identified by its public key.
     """
@@ -894,19 +797,24 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def QueryRoutes(self, request, context):
-    """* lncli: `queryroutes`
+    """lncli: `queryroutes`
     QueryRoutes attempts to query the daemon's Channel Router for a possible
     route to a target destination capable of carrying a specific amount of
     satoshis. The returned route contains the full details required to craft and
     send an HTLC, also including the necessary information that should be
     present within the Sphinx packet encapsulated within the HTLC.
+
+    When using REST, the `dest_custom_records` map type can be set by appending
+    `&dest_custom_records[<record_number>]=<record_data_base64_url_encoded>`
+    to the URL. Unfortunately this map type doesn't appear in the REST API
+    documentation because of a bug in the grpc-gateway library.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetNetworkInfo(self, request, context):
-    """* lncli: `getnetworkinfo`
+    """lncli: `getnetworkinfo`
     GetNetworkInfo returns some basic stats about the known channel graph from
     the point of view of the node.
     """
@@ -915,7 +823,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def StopDaemon(self, request, context):
-    """* lncli: `stop`
+    """lncli: `stop`
     StopDaemon will send a shutdown request to the interrupt handler, triggering
     a graceful shutdown of the daemon.
     """
@@ -924,7 +832,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SubscribeChannelGraph(self, request, context):
-    """*
+    """
     SubscribeChannelGraph launches a streaming RPC that allows the caller to
     receive notifications upon any changes to the channel graph topology from
     the point of view of the responding node. Events notified include: new
@@ -937,7 +845,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def DebugLevel(self, request, context):
-    """* lncli: `debuglevel`
+    """lncli: `debuglevel`
     DebugLevel allows a caller to programmatically set the logging verbosity of
     lnd. The logging can be targeted according to a coarse daemon-wide logging
     level, or in a granular fashion to specify the logging for a target
@@ -948,7 +856,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def FeeReport(self, request, context):
-    """* lncli: `feereport`
+    """lncli: `feereport`
     FeeReport allows the caller to obtain a report detailing the current fee
     schedule enforced by the node globally for each channel.
     """
@@ -957,7 +865,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def UpdateChannelPolicy(self, request, context):
-    """* lncli: `updatechanpolicy`
+    """lncli: `updatechanpolicy`
     UpdateChannelPolicy allows the caller to update the fee schedule and
     channel policies for all channels globally, or a particular channel.
     """
@@ -966,7 +874,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ForwardingHistory(self, request, context):
-    """* lncli: `fwdinghistory`
+    """lncli: `fwdinghistory`
     ForwardingHistory allows the caller to query the htlcswitch for a record of
     all HTLCs forwarded within the target time range, and integer offset
     within that time range. If no time-range is specified, then the first chunk
@@ -983,7 +891,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ExportChannelBackup(self, request, context):
-    """* lncli: `exportchanbackup`
+    """lncli: `exportchanbackup`
     ExportChannelBackup attempts to return an encrypted static channel backup
     for the target channel identified by it channel point. The backup is
     encrypted with a key generated from the aezeed seed of the user. The
@@ -996,7 +904,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ExportAllChannelBackups(self, request, context):
-    """*
+    """
     ExportAllChannelBackups returns static channel backups for all existing
     channels known to lnd. A set of regular singular static channel backups for
     each channel are returned. Additionally, a multi-channel backup is returned
@@ -1008,7 +916,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def VerifyChanBackup(self, request, context):
-    """*
+    """
     VerifyChanBackup allows a caller to verify the integrity of a channel backup
     snapshot. This method will accept either a packed Single or a packed Multi.
     Specifying both will result in an error.
@@ -1018,7 +926,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def RestoreChannelBackups(self, request, context):
-    """* lncli: `restorechanbackup`
+    """lncli: `restorechanbackup`
     RestoreChannelBackups accepts a set of singular channel backups, or a
     single encrypted multi-chan backup and attempts to recover any funds
     remaining within the channel. If we are able to unpack the backup, then the
@@ -1029,7 +937,7 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SubscribeChannelBackups(self, request, context):
-    """*
+    """
     SubscribeChannelBackups allows a client to sub-subscribe to the most up to
     date information concerning the state of all channel backups. Each time a
     new channel is added, we return the new set of channels, along with a
@@ -1043,10 +951,19 @@ class LightningServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def BakeMacaroon(self, request, context):
-    """* lncli: `bakemacaroon`
+    """lncli: `bakemacaroon`
     BakeMacaroon allows the creation of a new macaroon with custom read and
     write permissions. No first-party caveats are added since this can be done
     offline.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListPermissions(self, request, context):
+    """lncli: `listpermissions`
+    ListPermissions lists all RPC method URIs and their required macaroon
+    permissions to access them.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -1134,6 +1051,11 @@ def add_LightningServicer_to_server(servicer, server):
           servicer.GetInfo,
           request_deserializer=rpc__pb2.GetInfoRequest.FromString,
           response_serializer=rpc__pb2.GetInfoResponse.SerializeToString,
+      ),
+      'GetRecoveryInfo': grpc.unary_unary_rpc_method_handler(
+          servicer.GetRecoveryInfo,
+          request_deserializer=rpc__pb2.GetRecoveryInfoRequest.FromString,
+          response_serializer=rpc__pb2.GetRecoveryInfoResponse.SerializeToString,
       ),
       'PendingChannels': grpc.unary_unary_rpc_method_handler(
           servicer.PendingChannels,
@@ -1329,6 +1251,11 @@ def add_LightningServicer_to_server(servicer, server):
           servicer.BakeMacaroon,
           request_deserializer=rpc__pb2.BakeMacaroonRequest.FromString,
           response_serializer=rpc__pb2.BakeMacaroonResponse.SerializeToString,
+      ),
+      'ListPermissions': grpc.unary_unary_rpc_method_handler(
+          servicer.ListPermissions,
+          request_deserializer=rpc__pb2.ListPermissionsRequest.FromString,
+          response_serializer=rpc__pb2.ListPermissionsResponse.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

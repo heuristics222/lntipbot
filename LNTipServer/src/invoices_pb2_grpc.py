@@ -44,7 +44,7 @@ class InvoicesServicer(object):
   """
 
   def SubscribeSingleInvoice(self, request, context):
-    """*
+    """
     SubscribeSingleInvoice returns a uni-directional stream (server -> client)
     to notify the client of state transitions of the specified invoice.
     Initially the current invoice state is always sent out.
@@ -54,7 +54,7 @@ class InvoicesServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def CancelInvoice(self, request, context):
-    """*
+    """
     CancelInvoice cancels a currently open invoice. If the invoice is already
     canceled, this call will succeed. If the invoice is already settled, it will
     fail.
@@ -64,7 +64,7 @@ class InvoicesServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def AddHoldInvoice(self, request, context):
-    """*
+    """
     AddHoldInvoice creates a hold invoice. It ties the invoice to the hash
     supplied in the request.
     """
@@ -73,7 +73,7 @@ class InvoicesServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SettleInvoice(self, request, context):
-    """*
+    """
     SettleInvoice settles an accepted invoice. If the invoice is already
     settled, this call will succeed.
     """
