@@ -11,7 +11,9 @@ class CdkStack(cdk.Stack):
 
         lambdaRole = self.createLambdaRole()
 
-        api = awsapigateway.RestApi(self, 'lntipbot')
+        api = awsapigateway.RestApi(self, 'lntipbot',
+            endpoint_types=[awsapigateway.EndpointType.REGIONAL]
+        )
 
         info = api.root.add_resource('info', default_integration=awsapigateway.MockIntegration(
             integration_responses=[
@@ -45,27 +47,39 @@ class CdkStack(cdk.Stack):
             ]
         )
 
+        lambdaCode = awslambda.Code.from_asset('lambdas')
+
         invoiceUriFunction = awslambda.Function(self, 'invoiceUriFunction', 
-            code=awslambda.Code.from_asset('lambdas'),
+            code=lambdaCode,
             runtime=awslambda.Runtime.PYTHON_3_8,
             handler='getURI.getURI',
             role=lambdaRole,
-            layers=[
-                lambdaLayer
-            ]
+            layers=[lambdaLayer]
         )
 
         invoiceUri = api.root.add_resource('uri', default_integration=awsapigateway.LambdaIntegration(
             invoiceUriFunction
         ))
 
-        invoiceUri.add_method('GET',
-            
+        invoiceUri.add_method('GET')
+
+        qrFunction = awslambda.Function(self, 'qrFunction',
+            code=lambdaCode,
+            runtime=awslambda.Runtime.PYTHON_3_8,
+            handler='qrEncoder.qrEncoder',
+            role=lambdaRole,
+            layers=[lambdaLayer]
         )
+
+        qrUri = api.root.add_resource('qr', default_integration=awsapigateway.LambdaIntegration(
+            qrFunction
+        ))
+
+        qrUri.add_method('GET')
 
     def installRequirements(self, path):
         outPath = f'{path}_deps'
-        subprocess.check_call(f'pip install -r {path}/requirements.txt -t {outPath}'.split())
+        subprocess.check_call(f'pip install --upgrade -r {path}/requirements.txt -t {outPath}/python'.split())
         return outPath
 
     def createLambdaRole(self):

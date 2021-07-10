@@ -1,4 +1,5 @@
 -e .
+wheel
 aws-cdk.core
 aws-cdk.aws-apigateway
 aws-cdk.aws-lambda

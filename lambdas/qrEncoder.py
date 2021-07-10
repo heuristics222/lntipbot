@@ -18,12 +18,7 @@ def encodeInvoice(invoice):
     file = BytesIO()
     code.svg(file, omithw=True)
     logger.info('svg: {}'.format(time.time() - start))
-
-    encoded = base64.b64encode(file.getvalue()).decode()
-
-    logger.info('encode: {}'.format(time.time() - start))
-
-    return encoded
+    return file.getvalue().decode('UTF-8')
 
 def qrEncoder(event, context):
     invoice = None
@@ -43,7 +38,7 @@ def qrEncoder(event, context):
     
     if invoice is not None:
         return {
-            'isBase64Encoded': True,
+            'isBase64Encoded': False,
             'headers': {
                 'Content-Type': 'image/svg+xml'
             },
@@ -52,7 +47,7 @@ def qrEncoder(event, context):
         }
     else:
         return {
-            'isBase64Encoded': True,
+            'isBase64Encoded': False,
             'headers': {},
             'statusCode': 400,
             'body': ''
