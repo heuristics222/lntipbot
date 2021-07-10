@@ -133,7 +133,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: lambda_function.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -145,7 +145,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: tipNotifier.tipNotifier
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -157,7 +157,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: payInvoiceSucceeded.payInvoiceSucceeded
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -169,7 +169,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: payInvoiceFailed.payInvoiceFailed
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -181,7 +181,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: settledInvoiceHandler.settledInvoiceHandler
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -193,7 +193,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: redditOAuthRequester.redditOAuthRequester
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -223,7 +223,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: qrEncoder.qrEncoder
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128
@@ -317,7 +317,7 @@ Resources:
     DependsOn: LambdaRole
     Properties:
       Handler: getURI.getURI
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: 'lambdas'
       Description: ''
       MemorySize: 128

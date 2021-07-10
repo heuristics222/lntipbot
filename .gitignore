@@ -104,3 +104,16 @@ venv.bak/
 .mypy_cache/
 
 .vscode/
+
+*.swp
+package-lock.json
+__pycache__
+.pytest_cache
+.env
+.venv
+*.egg-info
+build.toml
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
