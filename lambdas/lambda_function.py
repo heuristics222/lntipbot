@@ -96,21 +96,13 @@ def testOauth():
     )
     creds = json.loads(response['Body'].read())
     
-    
-    
-    
-    
-    # Maybe these should be kept somewhere safer
     client_auth = requests.auth.HTTPBasicAuth(creds['appId'], creds['secret'])
     data = {"grant_type": "password", "username": creds['username'], "password": creds['password']}
     req = requests.Request('POST', "https://www.reddit.com/api/v1/access_token", auth=client_auth, data=json.dumps(data), headers={"User-Agent": "lntipbot/0.1 by lntipbot"})
     pretty_print_POST(req.prepare())
     
     headers = urllib3.util.make_headers(basic_auth='{}:{}'.format(creds['appId'], creds['secret']))
-    #headers = {}
     headers["User-Agent"] = "lntipbot/0.1 by lntipbot"
-    #headers['Content-Type'] = 'application/json'
-    #headers["authorization"] = "Basic UmozNnc2NFV6YjB5T3c6MGhnSUx6TW1UTlhaVFJkSmxhdWFiRm9iY0g4"
     print(headers)
     print(json.dumps(data))
     response = http.request('POST', "https://www.reddit.com/api/v1/access_token", fields=data, headers=headers)
