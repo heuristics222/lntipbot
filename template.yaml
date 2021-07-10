@@ -1,0 +1,407 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Serverless Specification template describing your function.
+Resources:
+  DataTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: 'Id'
+          AttributeType: 'S'
+      KeySchema:
+        -
+          AttributeName: 'Id'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName: 'Data'
+  BalanceTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: 'User'
+          AttributeType: 'S'
+      KeySchema:
+        -
+          AttributeName: 'User'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 3
+        WriteCapacityUnits: 2
+      TableName: 'Balance'
+  TipsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: 'Id'
+          AttributeType: 'S'
+        -
+          AttributeName: 'Tippee'
+          AttributeType: 'S'
+        -
+          AttributeName: 'Tipper'
+          AttributeType: 'S'
+      KeySchema:
+        -
+          AttributeName: 'Id'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 6
+        WriteCapacityUnits: 6
+      TableName: 'Tips'
+      GlobalSecondaryIndexes:
+        -
+          IndexName: 'Tippee-Id-index'
+          KeySchema:
+            -
+              AttributeName: 'Tippee'
+              KeyType: 'HASH'
+            -
+              AttributeName: 'Id'
+              KeyType: 'RANGE'
+          Projection:
+            ProjectionType: 'ALL'
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+        -
+          IndexName: 'Tipper-Id-index'
+          KeySchema:
+            -
+              AttributeName: 'Tipper'
+              KeyType: 'HASH'
+            -
+              AttributeName: 'Id'
+              KeyType: 'RANGE'
+          Projection:
+            ProjectionType: 'ALL'
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+
+  LambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          -
+            Effect: 'Allow'
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        -
+          PolicyName: 'DdbPolicy'
+          PolicyDocument:
+            Statement:
+              -
+                Effect: 'Allow'
+                Action: 
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:UpdateItem'
+                Resource: 
+                  - !GetAtt DataTable.Arn
+                  - !GetAtt TipsTable.Arn
+                  - !GetAtt BalanceTable.Arn
+        -
+          PolicyName: 'LogPolicy'
+          PolicyDocument:
+            Statement:
+              -
+                Effect: 'Allow'
+                Action: 
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 
+                  - 'arn:aws:logs:*:*:*'
+
+  ApiTest:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy: Retain
+    DependsOn: LambdaRole
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt LambdaRole.Arn
+
+  NotifyTipper:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: tipNotifier.tipNotifier
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt LambdaRole.Arn
+
+  PayInvoiceSucceeded:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: payInvoiceSucceeded.payInvoiceSucceeded
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt LambdaRole.Arn
+
+  PayInvoiceFailed:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: payInvoiceFailed.payInvoiceFailed
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt LambdaRole.Arn
+
+  SettledInvoiceHandler:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: settledInvoiceHandler.settledInvoiceHandler
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt LambdaRole.Arn
+
+  RedditOAuthRequester:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: redditOAuthRequester.redditOAuthRequester
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt LambdaRole.Arn
+      ReservedConcurrentExecutions: 1
+  RedditOAuthRequesterPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt RedditOAuthRequester.Arn
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt RedditOAuthRefreshEvent.Arn
+  RedditOAuthRefreshEvent: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: ''
+      ScheduleExpression: 'rate(28 minutes)'
+      State: 'ENABLED'
+      Targets: 
+        - 
+          Arn: !GetAtt RedditOAuthRequester.Arn
+          Id: OAuthRefresher
+
+  QR:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: qrEncoder.qrEncoder
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt LambdaRole.Arn
+  QRApiPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt QR.Arn
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QRApi}/*/GET/'
+  QRApi:
+    Type: AWS::ApiGateway::RestApi
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: 'QR'
+      ApiKeySourceType: 'HEADER'
+      BinaryMediaTypes: ['*/*']
+      EndpointConfiguration:
+        Types: ['REGIONAL']
+  QRApiResource:
+    Type: AWS::ApiGateway::Resource
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      ParentId: !GetAtt QRApi.RootResourceId
+      PathPart: '/'
+      RestApiId: !Ref QRApi
+  QRApiDeploymentBeta:
+    Type: AWS::ApiGateway::Deployment
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      StageName: Beta
+      RestApiId: !Ref QRApi
+  QRApiDeploymentProd:
+    Type: AWS::ApiGateway::Deployment
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      StageName: qr
+      RestApiId: !Ref QRApi
+  QRApiEmptyModel:
+    Type: AWS::ApiGateway::Model
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref QRApi
+  QRApiErrorModel:
+    Type: AWS::ApiGateway::Model
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref QRApi
+  QRApiBetaStage:
+    Type: AWS::ApiGateway::Stage
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref QRApi
+      DeploymentId: !Ref QRApiDeploymentBeta
+      StageName: Beta
+  QRApiProdStage:
+    Type: AWS::ApiGateway::Stage
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref QRApi
+      DeploymentId: !Ref QRApiDeploymentProd
+      StageName: qr
+  QRApiMethod:
+    Type: AWS::ApiGateway::Method
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref QRApi
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${arn}/invocations'
+          - { 'arn': !GetAtt QR.Arn }
+      ResourceId: !GetAtt QRApi.RootResourceId
+
+  GetURI:
+    Type: 'AWS::Serverless::Function'
+    DependsOn: LambdaRole
+    Properties:
+      Handler: getURI.getURI
+      Runtime: python3.7
+      CodeUri: 'lambdas'
+      Description: ''
+      MemorySize: 128
+      Timeout: 4
+      Role: !GetAtt LambdaRole.Arn
+  GetURIAPIPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt GetURI.Arn
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${GetURIAPI}/*/GET/'
+  GetURIAPI:
+    Type: AWS::ApiGateway::RestApi
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: 'getURI'
+      ApiKeySourceType: 'HEADER'
+      BinaryMediaTypes: ['*/*']
+      EndpointConfiguration:
+        Types: ['REGIONAL']
+  GetURIAPIResource:
+    Type: AWS::ApiGateway::Resource
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      ParentId: !GetAtt GetURIAPI.RootResourceId
+      PathPart: '/'
+      RestApiId: !Ref GetURIAPI
+  GetURIAPIDeploymentBeta:
+    Type: AWS::ApiGateway::Deployment
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      StageName: Beta
+      RestApiId: !Ref GetURIAPI
+  GetURIAPIDeploymentProd:
+    Type: AWS::ApiGateway::Deployment
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      StageName: invoice
+      RestApiId: !Ref GetURIAPI
+  GetURIAPIEmptyModel:
+    Type: AWS::ApiGateway::Model
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref GetURIAPI
+  GetURIAPIErrorModel:
+    Type: AWS::ApiGateway::Model
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref GetURIAPI
+  GetURIAPIBetaStage:
+    Type: AWS::ApiGateway::Stage
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref GetURIAPI
+      DeploymentId: !Ref GetURIAPIDeploymentBeta
+      StageName: Beta
+  GetURIAPIProdStage:
+    Type: AWS::ApiGateway::Stage
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref GetURIAPI
+      DeploymentId: !Ref GetURIAPIDeploymentProd
+      StageName: invoice
+  GetURIAPIMethod:
+    Type: AWS::ApiGateway::Method
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RestApiId: !Ref GetURIAPI
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${arn}/invocations'
+          - { 'arn': !GetAtt GetURI.Arn }
+      ResourceId: !GetAtt GetURIAPI.RootResourceId

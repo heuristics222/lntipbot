@@ -1,0 +1,583 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "An AWS Serverless Specification template describing your function.",
+    "Resources": {
+      "LambdaRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "Policies": [
+            {
+              "PolicyName": "DdbPolicy",
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "dynamodb:PutItem",
+                      "dynamodb:GetItem"
+                    ],
+                    "Resource": [
+                      {
+                        "Fn::GetAtt": [
+                          "DataTable",
+                          "Arn"
+                        ]
+                      },
+                      {
+                        "Fn::GetAtt": [
+                          "TipsTable",
+                          "Arn"
+                        ]
+                      }
+                    ],
+                    "Effect": "Allow"
+                  }
+                ]
+              }
+            },
+            {
+              "PolicyName": "LogPolicy",
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": [
+                      "arn:aws:logs:*:*:*"
+                    ],
+                    "Effect": "Allow"
+                  }
+                ]
+              }
+            }
+          ],
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "NotifyTipper": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": "tipbot-deployment-bucket",
+            "S3Key": "cc0b80395ec5356d8807b1fd515ed7bf"
+          },
+          "Description": "",
+          "Tags": [
+            {
+              "Value": "SAM",
+              "Key": "lambda:createdBy"
+            }
+          ],
+          "MemorySize": 128,
+          "Handler": "tipNotifier.tipNotifier",
+          "Role": {
+            "Fn::GetAtt": [
+              "LambdaRole",
+              "Arn"
+            ]
+          },
+          "Timeout": 10,
+          "Runtime": "python3.7"
+        },
+        "DependsOn": "LambdaRole"
+      },
+      "GetURIAPIPermission": {
+        "Type": "AWS::Lambda::Permission",
+        "Properties": {
+          "Action": "lambda:InvokeFunction",
+          "FunctionName": {
+            "Fn::GetAtt": [
+              "GetURI",
+              "Arn"
+            ]
+          },
+          "SourceArn": {
+            "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${GetURIAPI}/*/GET/"
+          },
+          "Principal": "apigateway.amazonaws.com"
+        }
+      },
+      "GetURIAPIResource": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Resource",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          },
+          "PathPart": "/",
+          "ParentId": {
+            "Fn::GetAtt": [
+              "GetURIAPI",
+              "RootResourceId"
+            ]
+          }
+        }
+      },
+      "GetURIAPIBetaStage": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Stage",
+        "Properties": {
+          "DeploymentId": {
+            "Ref": "GetURIAPIDeploymentBeta"
+          },
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          },
+          "StageName": "Beta"
+        }
+      },
+      "ApiTest": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": "tipbot-deployment-bucket",
+            "S3Key": "d664dd626c76ef9f14dd27edfa2c7718"
+          },
+          "Description": "",
+          "Tags": [
+            {
+              "Value": "SAM",
+              "Key": "lambda:createdBy"
+            }
+          ],
+          "MemorySize": 128,
+          "Handler": "lambda_function.lambda_handler",
+          "Role": {
+            "Fn::GetAtt": [
+              "LambdaRole",
+              "Arn"
+            ]
+          },
+          "Timeout": 3,
+          "Runtime": "python3.7"
+        },
+        "DependsOn": "LambdaRole"
+      },
+      "GetURIAPIDeploymentBeta": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Deployment",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          },
+          "StageName": "Beta"
+        }
+      },
+      "GetURIAPIDeploymentProd": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Deployment",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          },
+          "StageName": "invoice"
+        }
+      },
+      "GetURIAPIProdStage": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Stage",
+        "Properties": {
+          "DeploymentId": {
+            "Ref": "GetURIAPIDeploymentProd"
+          },
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          },
+          "StageName": "invoice"
+        }
+      },
+      "TipsTable": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "ProvisionedThroughput": {
+            "WriteCapacityUnits": 6,
+            "ReadCapacityUnits": 6
+          },
+          "GlobalSecondaryIndexes": [
+            {
+              "KeySchema": [
+                {
+                  "KeyType": "HASH",
+                  "AttributeName": "Tippee"
+                },
+                {
+                  "KeyType": "RANGE",
+                  "AttributeName": "Id"
+                }
+              ],
+              "IndexName": "Tippee-Id-index",
+              "Projection": {
+                "ProjectionType": "ALL"
+              },
+              "ProvisionedThroughput": {
+                "WriteCapacityUnits": 1,
+                "ReadCapacityUnits": 1
+              }
+            },
+            {
+              "KeySchema": [
+                {
+                  "KeyType": "HASH",
+                  "AttributeName": "Tipper"
+                },
+                {
+                  "KeyType": "RANGE",
+                  "AttributeName": "Id"
+                }
+              ],
+              "IndexName": "Tipper-Id-index",
+              "Projection": {
+                "ProjectionType": "ALL"
+              },
+              "ProvisionedThroughput": {
+                "WriteCapacityUnits": 1,
+                "ReadCapacityUnits": 1
+              }
+            }
+          ],
+          "TableName": "Tips",
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "Id",
+              "AttributeType": "S"
+            },
+            {
+              "AttributeName": "Tippee",
+              "AttributeType": "S"
+            },
+            {
+              "AttributeName": "Tipper",
+              "AttributeType": "S"
+            }
+          ],
+          "KeySchema": [
+            {
+              "KeyType": "HASH",
+              "AttributeName": "Id"
+            }
+          ]
+        }
+      },
+      "GetURIAPIErrorModel": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Model",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          }
+        }
+      },
+      "BalanceTable": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "KeySchema": [
+            {
+              "KeyType": "HASH",
+              "AttributeName": "User"
+            }
+          ],
+          "TableName": "Balance",
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "User",
+              "AttributeType": "S"
+            }
+          ],
+          "ProvisionedThroughput": {
+            "WriteCapacityUnits": 2,
+            "ReadCapacityUnits": 3
+          }
+        }
+      },
+      "GetURIAPIMethod": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Method",
+        "Properties": {
+          "HttpMethod": "GET",
+          "AuthorizationType": "NONE",
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          },
+          "Integration": {
+            "IntegrationHttpMethod": "POST",
+            "Type": "AWS_PROXY",
+            "Uri": {
+              "Fn::Sub": [
+                "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${arn}/invocations",
+                {
+                  "arn": {
+                    "Fn::GetAtt": [
+                      "GetURI",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "ResourceId": {
+            "Fn::GetAtt": [
+              "GetURIAPI",
+              "RootResourceId"
+            ]
+          }
+        }
+      },
+      "GetURIAPIEmptyModel": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Model",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "GetURIAPI"
+          }
+        }
+      },
+      "GetURIAPI": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::RestApi",
+        "Properties": {
+          "BinaryMediaTypes": [
+            "*/*"
+          ],
+          "EndpointConfiguration": {
+            "Types": [
+              "REGIONAL"
+            ]
+          },
+          "Name": "getURI",
+          "ApiKeySourceType": "HEADER"
+        }
+      },
+      "DataTable": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "KeySchema": [
+            {
+              "KeyType": "HASH",
+              "AttributeName": "Id"
+            }
+          ],
+          "TableName": "Data",
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "Id",
+              "AttributeType": "S"
+            }
+          ],
+          "ProvisionedThroughput": {
+            "WriteCapacityUnits": 1,
+            "ReadCapacityUnits": 1
+          }
+        }
+      },
+      "GetURI": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": "tipbot-deployment-bucket",
+            "S3Key": "0785076df60132ce4d2947dce42b8884"
+          },
+          "Description": "",
+          "Tags": [
+            {
+              "Value": "SAM",
+              "Key": "lambda:createdBy"
+            }
+          ],
+          "MemorySize": 128,
+          "Handler": "getURI.getURI",
+          "Role": {
+            "Fn::GetAtt": [
+              "LambdaRole",
+              "Arn"
+            ]
+          },
+          "Timeout": 4,
+          "Runtime": "python3.7"
+        },
+        "DependsOn": "LambdaRole"
+      },
+      "QR": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": "tipbot-deployment-bucket",
+            "S3Key": "4a0290b0b509fb9ff8e8182092629d54"
+          },
+          "Description": "",
+          "Tags": [
+            {
+              "Value": "SAM",
+              "Key": "lambda:createdBy"
+            }
+          ],
+          "MemorySize": 128,
+          "Handler": "qrEncoder.qrEncoder",
+          "Role": {
+            "Fn::GetAtt": [
+              "LambdaRole",
+              "Arn"
+            ]
+          },
+          "Timeout": 10,
+          "Runtime": "python3.7"
+        },
+        "DependsOn": "LambdaRole"
+      },
+      "QRApi": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::RestApi",
+        "Properties": {
+          "BinaryMediaTypes": [
+            "*/*"
+          ],
+          "EndpointConfiguration": {
+            "Types": [
+              "REGIONAL"
+            ]
+          },
+          "Name": "QR",
+          "ApiKeySourceType": "HEADER"
+        }
+      },
+      "QRApiResource": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Resource",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "QRApi"
+          },
+          "PathPart": "/",
+          "ParentId": {
+            "Fn::GetAtt": [
+              "QRApi",
+              "RootResourceId"
+            ]
+          }
+        }
+      },
+      "QRApiErrorModel": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Model",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "QRApi"
+          }
+        }
+      },
+      "QRApiEmptyModel": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Model",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "QRApi"
+          }
+        }
+      },
+      "QRApiDeploymentBeta": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Deployment",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "QRApi"
+          },
+          "StageName": "Beta"
+        }
+      },
+      "QRApiDeploymentProd": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Deployment",
+        "Properties": {
+          "RestApiId": {
+            "Ref": "QRApi"
+          },
+          "StageName": "qr"
+        }
+      },
+      "QRApiProdStage": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Stage",
+        "Properties": {
+          "DeploymentId": {
+            "Ref": "QRApiDeploymentProd"
+          },
+          "RestApiId": {
+            "Ref": "QRApi"
+          },
+          "StageName": "qr"
+        }
+      },
+      "QRApiBetaStage": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Stage",
+        "Properties": {
+          "DeploymentId": {
+            "Ref": "QRApiDeploymentBeta"
+          },
+          "RestApiId": {
+            "Ref": "QRApi"
+          },
+          "StageName": "Beta"
+        }
+      },
+      "QRApiMethod": {
+        "UpdateReplacePolicy": "Retain",
+        "DeletionPolicy": "Retain",
+        "Type": "AWS::ApiGateway::Method",
+        "Properties": {
+          "HttpMethod": "GET",
+          "AuthorizationType": "NONE",
+          "RestApiId": {
+            "Ref": "QRApi"
+          },
+          "Integration": {
+            "IntegrationHttpMethod": "POST",
+            "Type": "AWS_PROXY",
+            "Uri": 
+                "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:434623153115:function:qrEncoder/invocations"
+          },
+          "ResourceId": {
+            "Fn::GetAtt": [
+              "QRApi",
+              "RootResourceId"
+            ]
+          }
+        }
+      }
+    }
+  }
