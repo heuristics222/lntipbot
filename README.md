@@ -1,16 +1,7 @@
 
-# Welcome to your CDK Python project!
+# Lightning Network Reddit Tip Bot
 
-This is a blank project for Python development with CDK.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+You'll need to create an IAM role ahead of time with full permissions (or add specific permissions as needed) to deploy using the cdk/sam CLI
 
 To manually create a virtualenv on MacOS and Linux:
 
@@ -19,10 +10,10 @@ $ python -m venv .env
 ```
 
 After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+step to activate your virtualenv on linux, macOS, or windows mingw
 
 ```
-$ source .env/bin/activate
+$ source .env/Scripts/activate
 ```
 
 If you are a Windows platform, you would activate the virtualenv like this:
@@ -35,6 +26,7 @@ Once the virtualenv is activated, you can install the required dependencies.
 
 ```
 $ pip install -r requirements.txt
+$ pip install wheel
 ```
 
 At this point you can now synthesize the CloudFormation template for this code.
@@ -47,15 +39,6 @@ To add additional dependencies, for example other CDK libraries, just add
 them to your `setup.py` file and rerun the `pip install -r requirements.txt`
 command.
 
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-
  To bootstrap in a new region/account
 
  cdk --profile zzz bootstrap 
@@ -66,11 +49,14 @@ command.
 
  cdk --profile zzz deploy CdkStack
 
-To setup sam build
-
-pip install -r requirements.txt
-pip install wheel
-
 To deploy sam stack
 
-./deploy.sh
+./deploy.sh zzz
+
+## Other useful commands
+
+ * `cdk ls`                        list all stacks in the app
+ * `cdk synth`                     emits the synthesized CloudFormation template
+ * `cdk deploy --profile dev`      deploy this stack to your default AWS account/region
+ * `cdk diff --profile dev`        compare deployed stack with current state
+ * `cdk docs`                      open CDK documentation

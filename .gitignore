@@ -113,6 +113,7 @@ __pycache__
 .venv
 *.egg-info
 build.toml
+*_deps/*
 
 # CDK asset staging directory
 .cdk.staging

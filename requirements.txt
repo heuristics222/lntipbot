@@ -1,2 +1,4 @@
 -e .
--r lambdas/requirements.txt
+aws-cdk.core
+aws-cdk.aws-apigateway
+aws-cdk.aws-lambda
