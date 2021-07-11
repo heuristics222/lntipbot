@@ -107,7 +107,6 @@ venv.bak/
 
 *.swp
 package-lock.json
-__pycache__
 .pytest_cache
 .env
 .venv
