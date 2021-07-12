@@ -36,7 +36,7 @@ class TipperInvoiceThread(Thread):
                 self.lnd.getInfo()
 
                 response = self.sfn.get_activity_task(
-                    activityArn = 'arn:aws:states:us-west-2:434623153115:activity:GetTipperInvoice',
+                    activityArn = 'arn:aws:states:us-west-2:434623153115:activity:CdkStackgetTipperInvoiceActivity1238A05D',
                     workerName = 'LNTipServer'
                 )
                 

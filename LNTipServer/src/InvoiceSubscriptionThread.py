@@ -55,7 +55,7 @@ class InvoiceSubscriptionThread(Thread):
                         }
                         self.logger.info(payload)
                         response = self.lamb.invoke(
-                            FunctionName = 'arn:aws:lambda:us-west-2:434623153115:function:settledInvoiceHandler',
+                            FunctionName = 'arn:aws:lambda:us-west-2:434623153115:function:CdkStack-settledInvoiceHandler38092B08-4MojK9KjXaDx',
                             InvocationType = 'RequestResponse',
                             Payload = json.dumps(payload),
                         )

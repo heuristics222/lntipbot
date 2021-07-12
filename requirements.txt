@@ -5,4 +5,5 @@ aws-cdk.aws-apigateway
 aws-cdk.aws-lambda
 aws-cdk.aws-events
 aws-cdk.aws-events-targets
+aws-cdk.aws-stepfunctions-tasks
 pyclean
