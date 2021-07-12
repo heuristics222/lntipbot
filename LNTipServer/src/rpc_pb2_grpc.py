@@ -311,6 +311,16 @@ class LightningStub(object):
         request_serializer=rpc__pb2.BakeMacaroonRequest.SerializeToString,
         response_deserializer=rpc__pb2.BakeMacaroonResponse.FromString,
         )
+    self.ListMacaroonIDs = channel.unary_unary(
+        '/lnrpc.Lightning/ListMacaroonIDs',
+        request_serializer=rpc__pb2.ListMacaroonIDsRequest.SerializeToString,
+        response_deserializer=rpc__pb2.ListMacaroonIDsResponse.FromString,
+        )
+    self.DeleteMacaroonID = channel.unary_unary(
+        '/lnrpc.Lightning/DeleteMacaroonID',
+        request_serializer=rpc__pb2.DeleteMacaroonIDRequest.SerializeToString,
+        response_deserializer=rpc__pb2.DeleteMacaroonIDResponse.FromString,
+        )
     self.ListPermissions = channel.unary_unary(
         '/lnrpc.Lightning/ListPermissions',
         request_serializer=rpc__pb2.ListPermissionsRequest.SerializeToString,
@@ -351,8 +361,9 @@ class LightningServicer(object):
 
   def ChannelBalance(self, request, context):
     """lncli: `channelbalance`
-    ChannelBalance returns the total funds available across all open channels
-    in satoshis.
+    ChannelBalance returns a report on the total funds across all open channels,
+    categorized in local/remote, pending local/remote and unsettled local/remote
+    balances.
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -960,6 +971,23 @@ class LightningServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ListMacaroonIDs(self, request, context):
+    """lncli: `listmacaroonids`
+    ListMacaroonIDs returns all root key IDs that are in use.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def DeleteMacaroonID(self, request, context):
+    """lncli: `deletemacaroonid`
+    DeleteMacaroonID deletes the specified macaroon ID and invalidates all
+    macaroons derived from that ID.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def ListPermissions(self, request, context):
     """lncli: `listpermissions`
     ListPermissions lists all RPC method URIs and their required macaroon
@@ -1251,6 +1279,16 @@ def add_LightningServicer_to_server(servicer, server):
           servicer.BakeMacaroon,
           request_deserializer=rpc__pb2.BakeMacaroonRequest.FromString,
           response_serializer=rpc__pb2.BakeMacaroonResponse.SerializeToString,
+      ),
+      'ListMacaroonIDs': grpc.unary_unary_rpc_method_handler(
+          servicer.ListMacaroonIDs,
+          request_deserializer=rpc__pb2.ListMacaroonIDsRequest.FromString,
+          response_serializer=rpc__pb2.ListMacaroonIDsResponse.SerializeToString,
+      ),
+      'DeleteMacaroonID': grpc.unary_unary_rpc_method_handler(
+          servicer.DeleteMacaroonID,
+          request_deserializer=rpc__pb2.DeleteMacaroonIDRequest.FromString,
+          response_serializer=rpc__pb2.DeleteMacaroonIDResponse.SerializeToString,
       ),
       'ListPermissions': grpc.unary_unary_rpc_method_handler(
           servicer.ListPermissions,
