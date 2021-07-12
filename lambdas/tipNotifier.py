@@ -5,9 +5,12 @@ http = urllib3.PoolManager()
 
 headers = {"User-Agent": "lntipbot/0.1 by lntipbot"}
 
-HODL_TEMPLATE = 'Hi u/{tipper}, thanks for tipping u/{tippee} **{amount}** satoshis!\n\nPlease pay the following invoice [[QR](https://4zenmjas02.execute-api.us-west-2.amazonaws.com/qr?invoice={invoice} "Generate QR") / [URI](https://xoplj7kvo9.execute-api.us-west-2.amazonaws.com/invoice?id={id} "Generate URI")] and your payment will be held for up to one day or until the tip is claimed.\n***\n>!{invoice}!<\n***\n*[^(More info)](https://xnf5cwpq73.execute-api.us-west-2.amazonaws.com/prod/info) ^| [^(Balance)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=balance%26message=!balance) ^| [^(Deposit)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=deposit%26message=!deposit%2010000) ^| [^(Withdraw)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=withdraw%26message=!withdraw%20put_invoice_here) ^| ^(Something wrong?  Have a question?) [^(Send me a message)](https://www.reddit.com/message/compose/?to=drmoore718)*'
-TIP_TEMPLATE = 'Hi u/{tipper}, thanks for tipping u/{tippee} **{amount}** satoshis!\n\nYou didn\'t have enough balance, you can pay the following invoice [[QR](https://4zenmjas02.execute-api.us-west-2.amazonaws.com/qr?invoice={invoice} "Generate QR") / [URI](https://xoplj7kvo9.execute-api.us-west-2.amazonaws.com/invoice?id={id} "Generate URI")] instead.\n***\n>!{invoice}!<\n***\n*[^(More info)](https://xnf5cwpq73.execute-api.us-west-2.amazonaws.com/prod/info) ^| [^(Balance)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=balance%26message=!balance) ^| [^(Deposit)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=deposit%26message=!deposit%2010000) ^| [^(Withdraw)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=withdraw%26message=!withdraw%20put_invoice_here) ^| ^(Something wrong?  Have a question?) [^(Send me a message)](https://www.reddit.com/message/compose/?to=drmoore718)*'
-DEPOSIT_TEMPLATE = 'Hi u/{tippee}, thanks for depositing **{amount}** satoshis!\n\nPlease pay the following invoice [[QR](https://4zenmjas02.execute-api.us-west-2.amazonaws.com/qr?invoice={invoice} "Generate QR") / [URI](https://xoplj7kvo9.execute-api.us-west-2.amazonaws.com/invoice?id={id} "Generate URI")] to have the funds credited to your balance.\n***\n{invoice}\n***\nHappy tipping!'
+# TODO: get endpoint from cdk?
+ENDPOINT = 'https://xnf5cwpq73.execute-api.us-west-2.amazonaws.com/prod/'
+
+HODL_TEMPLATE = 'Hi u/{tipper}, thanks for tipping u/{tippee} **{amount}** satoshis!\n\nPlease pay the following invoice [[QR]({endpoint}qr?id={id} "Generate QR") / [URI]({endpoint}/uri?id={id} "Generate URI")] and your payment will be held for up to one day or until the tip is claimed.\n***\n>!{invoice}!<\n***\n*[^(More info)](https://xnf5cwpq73.execute-api.us-west-2.amazonaws.com/prod/info) ^| [^(Balance)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=balance%26message=!balance) ^| [^(Deposit)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=deposit%26message=!deposit%2010000) ^| [^(Withdraw)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=withdraw%26message=!withdraw%20put_invoice_here) ^| ^(Something wrong?  Have a question?) [^(Send me a message)](https://www.reddit.com/message/compose/?to=drmoore718)*'
+TIP_TEMPLATE = 'Hi u/{tipper}, thanks for tipping u/{tippee} **{amount}** satoshis!\n\nYou didn\'t have enough balance, you can pay the following invoice [[QR]({endpoint}qr?id={id} "Generate QR") / [URI]({endpoint}/uri?id={id} "Generate URI")] instead.\n***\n>!{invoice}!<\n***\n*[^(More info)](https://xnf5cwpq73.execute-api.us-west-2.amazonaws.com/prod/info) ^| [^(Balance)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=balance%26message=!balance) ^| [^(Deposit)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=deposit%26message=!deposit%2010000) ^| [^(Withdraw)](https://www.reddit.com/message/compose/?to=lntipbot%26subject=withdraw%26message=!withdraw%20put_invoice_here) ^| ^(Something wrong?  Have a question?) [^(Send me a message)](https://www.reddit.com/message/compose/?to=drmoore718)*'
+DEPOSIT_TEMPLATE = 'Hi u/{tippee}, thanks for depositing **{amount}** satoshis!\n\nPlease pay the following invoice [[QR]({endpoint}qr?id={id} "Generate QR") / [URI]({endpoint}/uri?id={id} "Generate URI")] to have the funds credited to your balance.\n***\n{invoice}\n***\nHappy tipping!'
 
 DATA_TABLE = 'Data'
 TIP_TABLE = 'Tips'
@@ -38,6 +41,7 @@ def getNotificationString(event):
             tippee = event['tippee'],
             amount = event['amount'],
             invoice = event['tipperInvoice'],
+            endpoint = ENDPOINT,
             id = event['id']
         )
     elif event['type'] == 'Deposit':
@@ -45,6 +49,7 @@ def getNotificationString(event):
             tippee = event['tippee'],
             amount = event['amount'],
             invoice = event['tipperInvoice'],
+            endpoint = ENDPOINT,
             id = event['id']
         )
     elif event['type'] == 'HodlTip':
@@ -53,6 +58,7 @@ def getNotificationString(event):
             tippee = event['tippee'],
             amount = event['amount'],
             invoice = event['tipperInvoice'],
+            endpoint = ENDPOINT,
             id = event['id']
         )
     
