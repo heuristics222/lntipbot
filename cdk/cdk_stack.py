@@ -6,7 +6,10 @@ import aws_cdk.aws_lambda as lambda_
 import aws_cdk.aws_iam as iam
 import aws_cdk.aws_stepfunctions as sfn
 import aws_cdk.aws_stepfunctions_tasks as tasks
+import aws_cdk.aws_ec2 as ec2
+import aws_cdk.aws_s3 as s3
 import subprocess
+import requests
 
 class CdkStack(cdk.Stack):
 
@@ -16,6 +19,10 @@ class CdkStack(cdk.Stack):
 
         codeLocation = 'lambdas'
         layerLocation = self.installRequirements(codeLocation)
+        self.ip = requests.get('https://api.ipify.org').text
+        self.vpc = ec2.Vpc.from_lookup(self, 'defaultVpc',
+            is_default=True
+        )
         self.lambdaRole = self.createLambdaRole()
         self.lambdaCode = lambda_.Code.from_asset(codeLocation)
         self.lambdaLayer = lambda_.LayerVersion(self, 'lambdaLayer', 
@@ -84,9 +91,9 @@ class CdkStack(cdk.Stack):
             )]
         )
 
-        self.createLambda('settledInvoiceHandler', 'settledInvoiceHandler.settledInvoiceHandler')
-        self.createLambda('apiTest', 'lambda_function.lambda_handler')
+        self.settledInvoiceHandler = self.createLambda('settledInvoiceHandler', 'settledInvoiceHandler.settledInvoiceHandler')
 
+        self.createLambda('apiTest', 'lambda_function.lambda_handler')
         
         withdrawWorkflow = self.createWithdrawWorkflow()
         tipWorkflow = self.createTipWorkflow()
@@ -110,6 +117,78 @@ class CdkStack(cdk.Stack):
             )]
         )
 
+        self.backupBucket = s3.Bucket(self, 'bitcoindBackups',
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            bucket_name='bitcoind-pruned-backups-lntipbot',
+        )
+
+        serverRole = self.createServerRole()
+        
+        volume = ec2.Volume(self, 'serverVolume',
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+            volume_type=ec2.EbsDeviceVolumeType.GP3,
+            availability_zone='us-west-2d',
+            snapshot_id='snap-0f81f825ae3251a39',
+            size=cdk.Size.gibibytes(16),
+        )
+        securityGroup = ec2.SecurityGroup(self, 'serverSecurityGroup',
+            vpc=self.vpc,
+            description='Server Security Group',
+        )
+        securityGroup.add_ingress_rule(
+            peer=ec2.Peer.ipv4(cidr_ip=f'{self.ip}/32'),
+            connection=ec2.Port.tcp(22),
+            description='Allow specific host for ssh'
+        )
+        securityGroup.add_egress_rule(
+            peer=ec2.Peer.any_ipv4(),
+            connection=ec2.Port.all_traffic(),
+            description='Allow all outbound'
+        )
+        securityGroup.apply_removal_policy(cdk.RemovalPolicy.RETAIN)
+
+        instance = ec2.Instance(self, 'serverInstance',
+            instance_type=ec2.InstanceType('t3a.small'),
+            vpc=self.vpc,
+            machine_image=ec2.MachineImage.generic_linux({
+                'us-west-2': 'ami-03d5c68bab01f3496'
+            }),
+            role=serverRole,
+            security_group=securityGroup,
+            availability_zone='us-west-2d',
+        )
+        
+        instance.apply_removal_policy(cdk.RemovalPolicy.RETAIN)
+
+        instance.node.default_child.volumes = [
+            ec2.CfnInstance.VolumeProperty(
+                device='/dev/sda1',
+                volume_id=volume.volume_id,
+            )
+        ]
+
+        # eip = ec2.CfnEIP(self, 'serverEIP',
+        #     domain='vpc',
+        #     instance_id=instance.instance_id,
+        # )
+        
+        # networkInterface = ec2.CfnInstance.NetworkInterfaceProperty(
+        #     subnet_id=self.vpc.select_subnets(
+        #         availability_zones=['us-west-2d']
+        #     ).subnet_ids[0],
+        #     private_ip_address='172.31.59.110',
+        #     group_set=[
+        #         securityGroup.security_group_id,
+        #     ],
+        #     delete_on_termination=False,
+        #     device_index='1',
+        # )
+
+        # instance.node.default_child.network_interfaces = [
+        #     networkInterface
+        # ]
+
+
     def createLambda(self, functionName, handlerName):
         return lambda_.Function(self, functionName, 
             code=self.lambdaCode,
@@ -131,26 +210,26 @@ class CdkStack(cdk.Stack):
             timeout=cdk.Duration.seconds(300)
         ).next(sfn.Succeed(self, 'tipSuccessState'))
 
-        payInvoice = tasks.StepFunctionsInvokeActivity(self, 'payInvoice',
+        self.payInvoice = tasks.StepFunctionsInvokeActivity(self, 'payInvoice',
             activity=sfn.Activity(self, 'payInvoiceActivity'),
             heartbeat=cdk.Duration.seconds(86400),
             timeout=cdk.Duration.seconds(86400),
         )
-        payInvoice.add_retry(
+        self.payInvoice.add_retry(
             backoff_rate=2,
             errors=['States.Timeout'],
             interval=cdk.Duration.seconds(600),
             max_attempts=0
         )
-        payInvoice.add_catch(
+        self.payInvoice.add_catch(
             handler=payInvoiceFailed,
             errors=['States.ALL'],
             result_path='$.errorInfo'
         )
-        payInvoice.next(payInvoiceSucceeded)
+        self.payInvoice.next(payInvoiceSucceeded)
 
         return sfn.StateMachine(self, 'withdrawWorkflow',
-            definition=payInvoice,
+            definition=self.payInvoice,
             role=self.statesRole
         )
 
@@ -160,26 +239,26 @@ class CdkStack(cdk.Stack):
             timeout=cdk.Duration.seconds(300)
         ).next(sfn.Succeed(self, 'withdrawSuccessState'))
 
-        getTipperInvoice = tasks.StepFunctionsInvokeActivity(self, 'getTipperInvoice',
+        self.getTipperInvoice = tasks.StepFunctionsInvokeActivity(self, 'getTipperInvoice',
             activity=sfn.Activity(self, 'getTipperInvoiceActivity'),
             heartbeat=cdk.Duration.seconds(60),
             timeout=cdk.Duration.seconds(86400),
         )
-        getTipperInvoice.add_retry(
+        self.getTipperInvoice.add_retry(
             backoff_rate=1.5,
             errors=['States.Timeout'],
             interval=cdk.Duration.seconds(60),
             max_attempts=7
         )
-        getTipperInvoice.add_catch(
+        self.getTipperInvoice.add_catch(
             handler=sfn.Fail(self, 'withdrawErrorState'),
             errors=['States.ALL'],
             result_path='$.errorInfo'
         )
-        getTipperInvoice.next(notifyTipper)
+        self.getTipperInvoice.next(notifyTipper)
 
         return sfn.StateMachine(self, 'tipWorkflow',
-            definition=getTipperInvoice,
+            definition=self.getTipperInvoice,
             role=self.statesRole
         )
 
@@ -192,6 +271,52 @@ class CdkStack(cdk.Stack):
         subprocess.check_call(f'pyclean {outPath}'.split())
 
         return outPath
+
+    def createServerRole(self):
+        return iam.Role(self, 'serverRole',
+            assumed_by=iam.ServicePrincipal('ec2.amazonaws.com'),
+            inline_policies={
+                'LNServerPolicy': iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            effect=iam.Effect.ALLOW,
+                            actions=[
+                                'lambda:InvokeFunction',
+                            ],
+                            resources=[
+                                self.settledInvoiceHandler.function_arn
+                            ]
+                            # TODO: Add conditions on IP?
+                        ),
+                        iam.PolicyStatement(
+                            effect=iam.Effect.ALLOW,
+                            actions=[
+                                's3:GetObject',
+                                's3:PutObject',
+                                's3:PutObjectAcl'
+                            ],
+                            resources=[
+                                f'{self.backupBucket.bucket_arn}/*'
+                            ]
+                        ),
+                        iam.PolicyStatement(
+                            effect=iam.Effect.ALLOW,
+                            actions=[
+                                'states:GetActivityTask',
+                                'states:SendTaskSuccess',
+                                'states:SendTaskFailure',
+                                'states:SendTaskHeartbeat',
+                            ],
+                            resources=[
+                                # I gave up on trying to get an ARN from the StepFunctionsInvokeActivity resources.  ARN retrieval in cdk is
+                                # a nightmare if the resource does not have a convenient helper like function_arn above
+                                '*'
+                            ]
+                        ),
+                    ]
+                )
+            }
+        )
 
     def createLambdaRole(self):
         return iam.Role(self, 'lambdaRole',

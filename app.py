@@ -13,6 +13,11 @@ from cdk.cdk_stack import CdkStack
 
 
 app = core.App()
-CdkStack(app, "CdkStack")
+CdkStack(app, "CdkStack",
+    env={
+        'account': os.environ['CDK_DEFAULT_ACCOUNT'],
+        'region': os.environ['CDK_DEFAULT_REGION']
+    }
+)
 
 app.synth()

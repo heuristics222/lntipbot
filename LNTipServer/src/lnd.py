@@ -67,8 +67,14 @@ class Client:
                 feeLimit = 10
             elif amt < 200000:
                 feeLimit = 20
+            elif amt < 300000:
+                feeLimit = 30
+            elif amt < 400000:
+                feeLimit = 40
+            elif amt < 500000:
+                feeLimit = 50
             else:
-                feeLimit = 25
+                feeLimit = 50
             
             request = ln.SendRequest(
                 payment_request=invoice,
