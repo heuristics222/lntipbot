@@ -10,6 +10,7 @@ import aws_cdk.aws_ec2 as ec2
 import aws_cdk.aws_s3 as s3
 import subprocess
 import requests
+import typing
 
 class CdkStack(cdk.Stack):
 
@@ -19,10 +20,8 @@ class CdkStack(cdk.Stack):
 
         codeLocation = 'lambdas'
         layerLocation = self.installRequirements(codeLocation)
-        self.ip = requests.get('https://api.ipify.org').text
-        self.vpc = ec2.Vpc.from_lookup(self, 'defaultVpc',
-            is_default=True
-        )
+        self.ip = self.getIp()
+        self.vpc = self.createVpc()
         self.lambdaRole = self.createLambdaRole()
         self.lambdaCode = lambda_.Code.from_asset(codeLocation)
         self.lambdaLayer = lambda_.LayerVersion(self, 'lambdaLayer', 
@@ -122,72 +121,163 @@ class CdkStack(cdk.Stack):
             bucket_name='bitcoind-pruned-backups-lntipbot',
         )
 
-        serverRole = self.createServerRole()
-        
-        volume = ec2.Volume(self, 'serverVolume',
-            removal_policy=cdk.RemovalPolicy.RETAIN,
-            volume_type=ec2.EbsDeviceVolumeType.GP3,
-            availability_zone='us-west-2d',
-            snapshot_id='snap-0f81f825ae3251a39',
-            size=cdk.Size.gibibytes(16),
+        self.serverRole = self.createServerRole()
+        self.securityGroup = self.createSecurityGroup()
+        self.createServer()
+
+    def createVpc(self):
+        vpc = ec2.Vpc(self, 'serverVpc', 
+            cidr='10.0.0.0/16',
+            max_azs=1,
+            nat_gateways=0,
+            subnet_configuration=[
+                ec2.SubnetConfiguration(
+                    name='serverSubnet',
+                    subnet_type=ec2.SubnetType.PUBLIC,
+                    cidr_mask=16
+                )
+            ]
         )
-        securityGroup = ec2.SecurityGroup(self, 'serverSecurityGroup',
-            vpc=self.vpc,
-            description='Server Security Group',
+
+        ipv6Cidr = ec2.CfnVPCCidrBlock(self, "serverVpcIpv6Cidr",
+            vpc_id=vpc.vpc_id,
+            amazon_provided_ipv6_cidr_block=True
         )
-        securityGroup.add_ingress_rule(
-            peer=ec2.Peer.ipv4(cidr_ip=f'{self.ip}/32'),
-            connection=ec2.Port.tcp(22),
-            description='Allow specific host for ssh'
-        )
-        securityGroup.add_egress_rule(
-            peer=ec2.Peer.any_ipv4(),
-            connection=ec2.Port.all_traffic(),
-            description='Allow all outbound'
+
+        for idx, subnet in enumerate(typing.cast(typing.List[ec2.Subnet], vpc.public_subnets)):
+            subnet.add_route("serverSubnetIpv6Route",
+                router_id=vpc.internet_gateway_id,
+                router_type=ec2.RouterType.GATEWAY,
+                destination_ipv6_cidr_block='::/0'
+            )
+
+            cfnSubnet = typing.cast(typing.Optional[ec2.CfnSubnet], subnet.node.default_child)
+            cfnSubnet.ipv6_cidr_block = cdk.Fn.select(
+                idx, 
+                cdk.Fn.cidr(
+                    cdk.Fn.select(0, vpc.vpc_ipv6_cidr_blocks),
+                    256,
+                    '64'
+                ))
+            cfnSubnet.add_depends_on(ipv6Cidr)
+
+        return vpc
+
+    def createSecurityGroup(self):
+        # L2 SecurityGroup construct does not support ipv6 well :(
+        securityGroup = ec2.CfnSecurityGroup(self, 'serverVpcSecurityGroup',
+            vpc_id=self.vpc.vpc_id,
+            group_description='Server Vpc Security Group',
+            security_group_ingress=[
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=22,
+                    to_port=22,
+                    cidr_ip=f'{self.ip}/32',
+                    description='Allow specific host for ssh'
+                ),
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=8333,
+                    to_port=8333,
+                    cidr_ip='0.0.0.0/0',
+                    description='Allow bitcoind'
+                ),
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=8333,
+                    to_port=8333,
+                    cidr_ipv6='::/0',
+                    description='Allow bitcoind'
+                ),
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=9735,
+                    to_port=9735,
+                    cidr_ip='0.0.0.0/0',
+                    description='Allow lnd'
+                ),
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=9735,
+                    to_port=9735,
+                    cidr_ipv6='::/0',
+                    description='Allow lnd'
+                ),
+            ],
+            security_group_egress=[
+                ec2.CfnSecurityGroup.EgressProperty(
+                    ip_protocol='-1',
+                    from_port=-1,
+                    to_port=-1,
+                    cidr_ip='0.0.0.0/0',
+                    description='Allow all outbound'
+                ),
+                ec2.CfnSecurityGroup.EgressProperty(
+                    ip_protocol='-1',
+                    from_port=-1,
+                    to_port=-1,
+                    cidr_ipv6='::/0',
+                    description='Allow all outbound'
+                ),
+            ]
         )
         securityGroup.apply_removal_policy(cdk.RemovalPolicy.RETAIN)
 
-        instance = ec2.Instance(self, 'serverInstance',
+        return securityGroup
+
+    def createServer(self):
+        volume = ec2.Volume(self, 'serverVolume2a',
+            removal_policy=cdk.RemovalPolicy.RETAIN,
+            volume_type=ec2.EbsDeviceVolumeType.GP3,
+            availability_zone='us-west-2a',
+            snapshot_id='snap-0ca71aed81fe73771',
+            size=cdk.Size.gibibytes(16),
+        )
+        instance = ec2.Instance(self, 'serverVpcInstance',
             instance_type=ec2.InstanceType('t3a.small'),
             vpc=self.vpc,
             machine_image=ec2.MachineImage.generic_linux({
                 'us-west-2': 'ami-03d5c68bab01f3496'
             }),
-            role=serverRole,
-            security_group=securityGroup,
-            availability_zone='us-west-2d',
+            role=self.serverRole,
+            availability_zone='us-west-2a',
+            key_name='tipbotkey', # must be created in advance
         )
-        
         instance.apply_removal_policy(cdk.RemovalPolicy.RETAIN)
 
         instance.node.default_child.volumes = [
             ec2.CfnInstance.VolumeProperty(
-                device='/dev/sda1',
+                device='/dev/sda2',
                 volume_id=volume.volume_id,
             )
         ]
 
-        # eip = ec2.CfnEIP(self, 'serverEIP',
-        #     domain='vpc',
-        #     instance_id=instance.instance_id,
-        # )
+        ec2.CfnEIPAssociation(self, 'serverVpcEIPAssociation',
+            eip=ec2.CfnEIP(self, 'serverVpcEIP',
+                domain='vpc',
+                instance_id=instance.instance_id,
+            ).ref,
+            instance_id=instance.instance_id
+        )
+
+        cfnInstance = typing.cast(typing.Optional[ec2.CfnInstance], instance.node.default_child)
+        cfnInstance.ipv6_addresses = [
+            ec2.CfnInstance.InstanceIpv6AddressProperty(ipv6_address='2600:1f14:0741:4a00:fedc:ba98:7654:3210')
+        ]
+        # Need to attach this manually since we have a CfnSecurityGroup, not a SecurityGroup
+        cfnInstance.security_group_ids = [
+            cdk.Fn.get_att(self.securityGroup.logical_id, 'GroupId').to_string()
+        ]
+
+    def getIp(self):
+        ip1 = requests.get('https://checkip.amazonaws.com').text.strip()
+        ip2 = requests.get('https://api.ipify.org').text.strip()
+
+        if not ip1 == ip2:
+            raise Exception
         
-        # networkInterface = ec2.CfnInstance.NetworkInterfaceProperty(
-        #     subnet_id=self.vpc.select_subnets(
-        #         availability_zones=['us-west-2d']
-        #     ).subnet_ids[0],
-        #     private_ip_address='172.31.59.110',
-        #     group_set=[
-        #         securityGroup.security_group_id,
-        #     ],
-        #     delete_on_termination=False,
-        #     device_index='1',
-        # )
-
-        # instance.node.default_child.network_interfaces = [
-        #     networkInterface
-        # ]
-
+        return ip1
 
     def createLambda(self, functionName, handlerName):
         return lambda_.Function(self, functionName, 

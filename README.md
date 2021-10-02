@@ -49,14 +49,10 @@ command.
 
  cdk --profile zzz deploy CdkStack
 
-To deploy sam stack
-
-./deploy.sh zzz
-
 ## Other useful commands
 
  * `cdk ls`                        list all stacks in the app
- * `cdk synth`                     emits the synthesized CloudFormation template
+ * `cdk synth --profile dev`       emits the synthesized CloudFormation template
  * `cdk deploy --profile dev`      deploy this stack to your default AWS account/region
  * `cdk diff --profile dev`        compare deployed stack with current state
  * `cdk docs`                      open CDK documentation

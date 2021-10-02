@@ -61,6 +61,13 @@ class Client:
         )
         return self.stub.SubscribeInvoices(request)
 
+    def decodePayRequest(self, payRequest):
+        return self.stub.DecodePayReq(
+            ln.PayReqString(
+                pay_req = payRequest
+            )
+        )
+
     def sendPayment(self, invoice, amt = None):
         if amt:
             if amt < 100000:
