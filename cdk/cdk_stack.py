@@ -1,15 +1,21 @@
 import aws_cdk.core as cdk
 import aws_cdk.aws_apigateway as agw
+import aws_cdk.aws_cloudwatch as cw
+import aws_cdk.aws_cloudwatch_actions as cwa
+import aws_cdk.aws_ec2 as ec2
 import aws_cdk.aws_events as events
 import aws_cdk.aws_events_targets as eventsTargets
 import aws_cdk.aws_lambda as lambda_
 import aws_cdk.aws_iam as iam
+import aws_cdk.aws_s3 as s3
+import aws_cdk.aws_sns as sns
+import aws_cdk.aws_sns_subscriptions as snss
 import aws_cdk.aws_stepfunctions as sfn
 import aws_cdk.aws_stepfunctions_tasks as tasks
-import aws_cdk.aws_ec2 as ec2
-import aws_cdk.aws_s3 as s3
-import subprocess
+import json
+import os
 import requests
+import subprocess
 import typing
 
 class CdkStack(cdk.Stack):
@@ -125,6 +131,68 @@ class CdkStack(cdk.Stack):
         self.securityGroup = self.createSecurityGroup()
         self.createServer()
 
+        self.createOps()
+
+    def getEmail(self):
+        if not os.path.exists('.tipbotconfiguration.json'):
+            with open('.tipbotconfiguration.json', 'w') as f:
+                json.dump({'email':''}, f)
+
+        with open('.tipbotconfiguration.json', 'r') as f:
+            email = json.load(f)['email']
+            if email == '':
+                raise Exception('No email found, enter email for alarm notification in a file called .tipbotconfiguration.json')
+            return email
+
+    def createOps(self):
+        alarmTopic = sns.Topic(self, 'TipBotAlarmTopic',
+            display_name='TipBotAlarmTopic',
+            fifo=False,
+        )
+        alarmTopic.add_subscription(snss.EmailSubscription(self.getEmail(), json=True))
+
+        cw.CompositeAlarm(self, 'TipBotCompositeAlarm',
+            alarm_rule=cw.AlarmRule.any_of(
+                cw.Alarm(self, "LNDAlarm",
+                    metric=cw.Metric(
+                        metric_name='LndUp',
+                        namespace='LNTipBot',
+                        period=cdk.Duration.minutes(1),
+                        statistic='sum',
+                        unit=cw.Unit.NONE,
+                    ),
+                    threshold=1,
+                    actions_enabled=False,
+                    alarm_description='Alarm for when the LND service has gone down',
+                    alarm_name='LND Alarm',
+                    comparison_operator=cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+                    datapoints_to_alarm=5,
+                    evaluation_periods=5,
+                    treat_missing_data=cw.TreatMissingData.BREACHING
+                ),
+                cw.Alarm(self, "BTCAlarm",
+                    metric=cw.Metric(
+                        metric_name='BtcUp',
+                        namespace='LNTipBot',
+                        period=cdk.Duration.minutes(1),
+                        statistic='sum',
+                        unit=cw.Unit.NONE,
+                    ),
+                    threshold=1,
+                    actions_enabled=False,
+                    alarm_description='Alarm for when the BTC service has gone down',
+                    alarm_name='BTC Alarm',
+                    comparison_operator=cw.ComparisonOperator.LESS_THAN_THRESHOLD,
+                    datapoints_to_alarm=5,
+                    evaluation_periods=5,
+                    treat_missing_data=cw.TreatMissingData.BREACHING
+                )
+            ),
+            actions_enabled=True,
+            alarm_description='TipBot Composite Alarm',
+            composite_alarm_name='TipBot Composite Alarm',
+        ).add_alarm_action(cwa.SnsAction(alarmTopic))
+
     def createVpc(self):
         vpc = ec2.Vpc(self, 'serverVpc', 
             cidr='10.0.0.0/16',
@@ -201,6 +269,20 @@ class CdkStack(cdk.Stack):
                     ip_protocol='tcp',
                     from_port=9735,
                     to_port=9735,
+                    cidr_ipv6='::/0',
+                    description='Allow lnd'
+                ),
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=9911,
+                    to_port=9911,
+                    cidr_ip='0.0.0.0/0',
+                    description='Allow lnd'
+                ),
+                ec2.CfnSecurityGroup.IngressProperty(
+                    ip_protocol='tcp',
+                    from_port=9911,
+                    to_port=9911,
                     cidr_ipv6='::/0',
                     description='Allow lnd'
                 ),
@@ -377,6 +459,15 @@ class CdkStack(cdk.Stack):
                                 self.settledInvoiceHandler.function_arn
                             ]
                             # TODO: Add conditions on IP?
+                        ),
+                        iam.PolicyStatement(
+                            effect=iam.Effect.ALLOW,
+                            actions=[
+                                'cloudwatch:PutMetricData',
+                            ],
+                            resources=[
+                                '*'
+                            ]
                         ),
                         iam.PolicyStatement(
                             effect=iam.Effect.ALLOW,

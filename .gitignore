@@ -114,6 +114,8 @@ package-lock.json
 build.toml
 *_deps/*
 
+.tipbotconfiguration.json
+
 # CDK asset staging directory
 .cdk.staging
 cdk.out

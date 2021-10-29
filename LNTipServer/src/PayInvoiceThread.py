@@ -1,16 +1,13 @@
 import boto3
-import grpc
+from CommonThread import CommonThread
 import json
-import logging
-import traceback
 from botocore.client import Config
 from lnd import Client
 from threading import Thread
-from time import sleep
 
-class PayInvoiceThread(Thread):
-    def __init__(self):
-        super().__init__(name='PIThread')
+class PayInvoiceThread(CommonThread):
+    def __init__(self, lnddatadir):
+        super().__init__('PIThread', 'PayInvoiceThread')
         config = Config(
             read_timeout = 65,
             retries = dict(
@@ -18,11 +15,9 @@ class PayInvoiceThread(Thread):
             )
         )
         self.sfn = boto3.client('stepfunctions', config = config, region_name = 'us-west-2')
-        self.lnd = Client()
-        self.logger = logging.getLogger(name='PayInvoiceThread')
-        self.start()
+        self.lnd = Client(lnddatadir)
 
-    def handleError(self, token, errorMessage):
+    def handleTaskError(self, token, errorMessage):
         self.sfn.send_task_failure(
             taskToken = token,
             error = "Failed",
@@ -54,35 +49,23 @@ class PayInvoiceThread(Thread):
                     break
             self.logger.error('Payment failed with {} {}'.format(type(error), error))
         else:
-            self.handleError(token, error)
+            self.handleTaskError(token, error)
 
-    def run(self):
-        self.logger.info('Starting Thread...')
+    def tryRun(self):
+        # Make sure lnd is active before getting a task
+        self.lnd.getInfo()
 
-        while True:
-            try:
-                # Make sure lnd is active before getting a task
-                self.lnd.getInfo()
+        response = self.sfn.get_activity_task(
+            activityArn = 'arn:aws:states:us-west-2:434623153115:activity:CdkStackpayInvoiceActivityB30C5FBC',
+            workerName = 'LNTipServer'
+        )
+        
+        if 'taskToken' in response and 'input' in response:
+            token = response['taskToken']
+            data = json.loads(response['input'])
 
-                response = self.sfn.get_activity_task(
-                    activityArn = 'arn:aws:states:us-west-2:434623153115:activity:CdkStackpayInvoiceActivityB30C5FBC',
-                    workerName = 'LNTipServer'
-                )
-                
-                if 'taskToken' in response and 'input' in response:
-                    token = response['taskToken']
-                    data = json.loads(response['input'])
+            # TODO: join all threads before exiting this one
+            Thread(target = self.handleTask, args = (token, data)).start()
 
-                    Thread(target = self.handleTask, args = (token, data)).start()
-
-                    sleep(10)
-
-            except grpc._channel._Rendezvous as e:
-                self.logger.error('LND appears to be down...')
-                self.lnd = Client()
-                sleep(60)
-
-            except Exception as e:
-                self.logger.error('Error type: {}'.format(type(e)))
-                self.logger.info('{}\n\n{}'.format(e, traceback.format_exc()))
-                sleep(60)
+            with self.cond:
+                self.cond.wait(10)

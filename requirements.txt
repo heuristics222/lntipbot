@@ -7,5 +7,6 @@ aws-cdk.aws-lambda-python
 aws-cdk.aws-events
 aws-cdk.aws-events-targets
 aws-cdk.aws-stepfunctions-tasks
+aws_cdk.aws_cloudwatch_actions
 pyclean
 requests

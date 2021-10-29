@@ -9,17 +9,17 @@ import codecs
 
 class Client:
 
-    def __init__(self):
+    def __init__(self, lnddatadir):
         os.environ["GRPC_SSL_CIPHER_SUITES"] = 'HIGH+ECDSA'
-        cert = open(os.path.expanduser('~/.lnd/tls.cert'), 'rb').read()
+        cert = open(os.path.join(lnddatadir, 'tls.cert'), 'rb').read()
         certCredentials = grpc.ssl_channel_credentials(cert)
         authCredentials = grpc.metadata_call_credentials(self.metadataCallback)
         combinedCredentials = grpc.composite_channel_credentials(certCredentials, authCredentials)
-        channel = grpc.secure_channel('localhost:10009', combinedCredentials)
+        self.channel = grpc.secure_channel('localhost:10009', combinedCredentials)
 
-        self.stub = lnrpc.LightningStub(channel)
-        self.invoicesstub = invoicesrpc.InvoicesStub(channel)
-        self.macaroon = codecs.encode(open(os.path.expanduser('~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon'), 'rb').read(), 'hex')
+        self.stub = lnrpc.LightningStub(self.channel)
+        self.invoicesstub = invoicesrpc.InvoicesStub(self.channel)
+        self.macaroon = codecs.encode(open(os.path.join(lnddatadir, 'data/chain/bitcoin/mainnet/admin.macaroon'), 'rb').read(), 'hex')
 
     def metadataCallback(self, context, callback):
         callback([('macaroon', self.macaroon)], None)
@@ -71,7 +71,7 @@ class Client:
     def sendPayment(self, invoice, amt = None):
         if amt:
             if amt < 100000:
-                feeLimit = 10
+                feeLimit = 20
             elif amt < 200000:
                 feeLimit = 20
             elif amt < 300000:
