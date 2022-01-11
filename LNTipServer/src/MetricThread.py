@@ -1,7 +1,6 @@
 import boto3
 from collections import OrderedDict
 from CommonThread import CommonThread
-import configparser
 from botocore.client import Config
 from datetime import datetime
 from lnd import Client
@@ -21,8 +20,13 @@ class MetricThread(CommonThread):
         self.cw = boto3.client('cloudwatch', config = config, region_name = 'us-west-2')
 
         with open(os.path.join(btcdatadir, 'bitcoin.conf'), 'r') as f:
-            configString = '[DEFAULT]\n' + f.read()
-        self.btcConfig = configparser.ConfigParser(strict=False).read_string(configString)
+            configLines = f.read().splitlines()
+
+        self.btcConfig = {
+            'rpcuser': next(filter(lambda x: x.startswith('rpcuser='), configLines), None)[8:],
+            'rpcport': next(filter(lambda x: x.startswith('rpcport='), configLines), None)[8:],
+            'rpcpassword': next(filter(lambda x: x.startswith('rpcpassword='), configLines), None)[12:],
+        }
 
     def isBtcUp(self):
         try:
