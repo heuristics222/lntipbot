@@ -27,19 +27,19 @@ class MetricThread(CommonThread):
     def isBtcUp(self):
         try:
             response = requests.post('http://{}:{}@127.0.0.1:{}'.format(self.btcConfig['rpcuser'], self.btcConfig['rpcpassword'], self.btcConfig['rpcport']),
-                data={
+                json={
                     'method': 'getnetworkinfo'
                 }
             )
             return response.json()['result']['networkactive']
-        finally:
+        except:
             return False
 
     def isLndUp(self):
         try:
             self.lnd.getInfo()
             return True
-        finally:
+        except:
             return False
 
     def tryRun(self):
