@@ -41,7 +41,7 @@ command.
 
  To bootstrap in a new region/account
 
- cdk --profile zzz bootstrap 
+ cdk --profile zzz bootstrap
 
  where zzz is a profile specified in ~/.aws/credentials
 
@@ -49,10 +49,32 @@ command.
 
  cdk --profile zzz deploy CdkStack
 
+## Permission setup
+IAM Identity center is set up for sso.  Once you have an account enabled, run
+
+```
+aws configure sso
+```
+
+```
+SSO start URL [None]: https://d-9267521077.awsapps.com/start
+SSO Region [None]: us-west-2
+...
+CLI default client Region [None]: us-west-2
+CLI default output format [None]: json
+CLI profile name [...]: dev2
+```
+
+Now your aws cli has a `dev2` profile that can be used for access.  CDK 1 doesn't support it yet so use `yawsso` to copy the credentials over to a `dev2` profile in `~/.aws/credentials`.
+
+```
+yawsso
+```
+
 ## Other useful commands
 
- * `cdk ls`                        list all stacks in the app
- * `cdk synth --profile dev`       emits the synthesized CloudFormation template
- * `cdk deploy --profile dev`      deploy this stack to your default AWS account/region
- * `cdk diff --profile dev`        compare deployed stack with current state
- * `cdk docs`                      open CDK documentation
+ * `cdk ls --profile dev2`          list all stacks in the app
+ * `cdk synth --profile dev2`       emits the synthesized CloudFormation template
+ * `cdk deploy --profile dev2`      deploy this stack to your default AWS account/region
+ * `cdk diff --profile dev2`        compare deployed stack with current state
+ * `cdk docs`                       open CDK documentation

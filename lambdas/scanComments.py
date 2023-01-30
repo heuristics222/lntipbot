@@ -35,10 +35,10 @@ TIP_TABLE = 'Tips'
 POLL_INTERVAL = 14
 MAX_RUNTIME = 48
 
-PM_MIN_TIP = 'https://oauth.reddit.com/api/compose?api_type=json&subject=Minimum tip&to={}&text=It looks like you tried to tip {} satoshis, but the minimum tip amount is {} satoshis.'
+PM_MIN_TIP = 'https://oauth.reddit.com/api/compose?api_type=json&subject=Minimum tip&to={}&text=It looks like you tried to tip ⚡︎{} (satoshis), but the minimum tip amount is ⚡︎{}.'
 PM_NO_COMMAND = 'https://oauth.reddit.com/api/comment?api_type=json&text=I didn\'t understand your command.  [More info]({info})&thing_id={thing}'
-PM_BALANCE_REPLY = 'https://oauth.reddit.com/api/comment?api_type=json&text=Your balance is {} satoshis&thing_id={}'
-PM_WITHDRAW_INSUFFICIENT_FUNDS_REPLY = 'https://oauth.reddit.com/api/comment?api_type=json&text=You didn\'t have enough funds.  Your balance is {} satoshis&thing_id={}'
+PM_BALANCE_REPLY = 'https://oauth.reddit.com/api/comment?api_type=json&text=Your balance is ⚡︎{} (satoshis)&thing_id={}'
+PM_WITHDRAW_INSUFFICIENT_FUNDS_REPLY = 'https://oauth.reddit.com/api/comment?api_type=json&text=You didn\'t have enough funds.  Your balance is ⚡︎{} (satoshis)&thing_id={}'
 
 PM_DOWN_TEMPORARILY_REPLY = 'https://oauth.reddit.com/api/comment?api_type=json&text=Deposits and withdrawals are down temporarily while my bitcoin node reindexes, sorry for the inconvenience [Status](https://www.reddit.com/r/lntipbot/wiki/index)&thing_id={}'
 
@@ -64,7 +64,7 @@ def refreshOauthToken():
     oauth = json.loads(oauthResponse['Item']['Data']['S'])
 
     headers['Authorization'] = 'bearer ' + oauth['access_token']
-    
+
 refreshOauthToken()
 
 def startInvoiceWorkflow(tip):
@@ -86,7 +86,7 @@ def startWithdrawWorkflow(invoice, amount, user, name):
         })
     )
 
-    
+
 def requestGet(url):
     response = http.request('GET', url, headers=headers)
     if response.status == 503:
@@ -97,7 +97,7 @@ def requestGet(url):
         raise
     else:
         return True, json.loads(response.data)
-    
+
 def requestPost(url):
     response = http.request('POST', url, headers=headers)
     return json.loads(response.data)
@@ -109,7 +109,7 @@ def getNotificationString(tipdata):
         amount = tipdata['amount'],
         info = INFO_LOCATION
     )
-    
+
 def saveTip(data):
     response = ddb.put_item(
         TableName = TIP_TABLE,
@@ -137,7 +137,7 @@ def saveTip(data):
             },
         },
     )
-    
+
 def handleTip(comment, amount, hodlTip):
     tipdata = {}
     tipdata['amount'] = amount
@@ -148,12 +148,12 @@ def handleTip(comment, amount, hodlTip):
     tipdata['resourceId'] = comment['data']['name']
     tipdata['parentResourceId'] = comment['data']['parent_id']
     tipdata['time'] = datetime.datetime.fromtimestamp(comment['data']['created_utc']).strftime('%Y-%m-%d %H:%M:%S')
-    
+
     # Parent is a comment, need to get the parent comment to get the author
     if comment['data']['parent_id'].startswith('t1'):
         success, data = requestGet('https://oauth.reddit.com/api/info.json?id=' + comment['data']['parent_id'])
         tipdata['tippee'] = data['data']['children'][0]['data']['author']
-        
+
     if tipdata['tipper'] == DELETED:
         logger.info('Tipper was deleted')
         return
@@ -163,19 +163,19 @@ def handleTip(comment, amount, hodlTip):
     if tipdata['tipper'] == tipdata['tippee']:
         logger.info('Tipper was the same as tippee: {}'.format(tipdata['tipper']))
         return
-    
+
     tipAmount = int(tipdata['amount'])
     if tipAmount < MIN_TIP:
-        logger.info('Tip was too small: {} satoshis'.format(tipAmount))
+        logger.info('Tip was too small: ⚡︎{} (satoshis)'.format(tipAmount))
         try:
             requestPost(PM_MIN_TIP.format(tipdata['tipper'], tipAmount, MIN_TIP))
         except:
             pass
         return
     elif tipAmount > MAX_TIP:
-        logger.info('Tip was too large: {} satoshis'.format(tipAmount))
+        logger.info('Tip was too large: ⚡︎{} (satoshis)'.format(tipAmount))
         return
-    
+
     if hodlTip:
         logger.info('Handling a hodl tip')
         startInvoiceWorkflow(tipdata)
@@ -192,17 +192,17 @@ def handleTip(comment, amount, hodlTip):
             data = requestPost("https://oauth.reddit.com/api/comment?api_type=json&text=" + getNotificationString(tipdata) + "&thing_id=" + tipdata['resourceId'])
             logger.info(data)
             saveTip(tipdata)
-    
-    
+
+
 def handleComment(comment):
     commentBody = comment['data']['body'].lower()
     match = TIP_TRIGGER_EXP.search(commentBody)
     hodlmatch = HODL_TRIGGER_EXP.search(commentBody)
-    
+
     logger.info('Handling comment {}'.format(comment['data']['name']))
     #logger.info('Comment body: {}'.format(commentBody))
     #logger.info('Comment body type: {}'.format(type(commentBody)))
-    
+
     if match:
         handleTip(comment, match.group(1), False)
     elif hodlmatch:
@@ -222,15 +222,15 @@ def invoiceAmtToMicrosat(amt):
 
 def withdraw(withdrawer, withdrawMicrosat, messageId, invoice):
     logging.info('{} attempting to withdraw {} microsat'.format(withdrawer, withdrawMicrosat))
-    
+
     try:
         newBal = withdrawBalance(withdrawer, withdrawMicrosat)
     except ddb.exceptions.ConditionalCheckFailedException as e:
         balance = getBalance(withdrawer)
-        
+
         logger.info('Not enough funds.  Tried to withdraw {} microsat but had {} microsat'.format(withdrawMicrosat, balance))
         logger.info(e)
-        
+
         requestPost(PM_WITHDRAW_INSUFFICIENT_FUNDS_REPLY.format(balance/1000000., messageId))
     else:
         logger.info('Withdrawal succeeded.  New balance {} microsat'.format(newBal))
@@ -241,17 +241,17 @@ def handleMessage(message):
     withdrawMatch = WITHDRAW_TRIGGER.match(messageBody)
     withdrawAllMatch = WITHDRAW_ALL_TRIGGER.match(messageBody)
     depositMatch = DEPOSIT_MATCH.match(messageBody)
-    
+
     logger.info('Handling message {}'.format(message['data']['name']))
     #logger.info('Message body: {}'.format(messageBody))
-    
+
     # Don't handle t1's as messages (public comments)
     if message['data']['name'].startswith('t1'):
         return
-    
+
     if messageBody == '!balance':
         balance = getBalance(message['data']['author'])
-        
+
         requestPost(PM_BALANCE_REPLY.format(balance/1000000., message['data']['name']))
     elif withdrawMatch:
         #url = PM_DOWN_TEMPORARILY_REPLY.format(message['data']['name'])
@@ -259,25 +259,25 @@ def handleMessage(message):
         #result = requestPost(url)
         #logger.info(result)
         #return
-        
+
         withdraw(message['data']['author'], invoiceAmtToMicrosat(withdrawMatch.group(2)), message['data']['name'], withdrawMatch.group(1))
-        
+
     elif withdrawAllMatch:
         #url = PM_DOWN_TEMPORARILY_REPLY.format(message['data']['name'])
         #logger.info(url)
         #result = requestPost(url)
         #logger.info(result)
         #return
-        
+
         withdraw(message['data']['author'], getBalance(message['data']['author']), message['data']['name'], withdrawAllMatch.group(1))
-        
+
     elif depositMatch:
         #url = PM_DOWN_TEMPORARILY_REPLY.format(message['data']['name'])
         #logger.info(url)
         #result = requestPost(url)
         #logger.info(result)
         #return
-        
+
         tipdata = {}
         tipdata['amount'] = depositMatch.group(1)
         tipdata['tippee'] = message['data']['author']
@@ -286,9 +286,9 @@ def handleMessage(message):
         tipdata['type'] = 'Deposit'
         tipdata['resourceId'] = message['data']['name']
         tipdata['time'] = datetime.datetime.fromtimestamp(message['data']['created_utc']).strftime('%Y-%m-%d %H:%M:%S')
-        
+
         if int(tipdata['amount']) > 0:
-            logger.info('Starting deposit invoice workflow for {} satoshis for {}'.format(tipdata['amount'], tipdata['tippee']))
+            logger.info('Starting deposit invoice workflow for ⚡︎{} (satoshis) for {}'.format(tipdata['amount'], tipdata['tippee']))
             startInvoiceWorkflow(tipdata)
         else:
             logger.info('Got a 0 amount deposit')
@@ -300,7 +300,7 @@ def handleMessage(message):
         logger.info(url)
         result = requestPost(url)
         logger.info(result)
-        
+
 
 def getBalance(name):
     response = ddb.get_item(
@@ -311,12 +311,12 @@ def getBalance(name):
             }
         }
     )
-    
+
     if 'Item' in response:
         return int(response['Item']['Balance']['N'])
     else:
         return 0
-        
+
 def withdrawBalance(name, amount):
     response = ddb.update_item(
         TableName = BALANCE_TABLE,
@@ -334,9 +334,9 @@ def withdrawBalance(name, amount):
         },
         ReturnValues = 'UPDATED_NEW'
     )
-    
+
     logger.info('{} withdraw {}'.format(name, response))
-    
+
     return int(response['Attributes']['Balance']['N'])
 
 def depositBalance(name, amount):
@@ -355,9 +355,9 @@ def depositBalance(name, amount):
         },
         ReturnValues = 'UPDATED_NEW'
     )
-    
+
     logger.info('{} deposit {}'.format(name, response))
-    
+
     if 'Item' in response:
         return int(response['Item']['Balance']['N'])
     else:
@@ -383,12 +383,12 @@ def saveData(dataId, data):
                 'S': dataId
             },
             'Data': {
-                'S': json.dumps({ 
-                    'data': { 
+                'S': json.dumps({
+                    'data': {
                         'name': data['data']['name'],
                         'created_utc': data['data']['created_utc']
                     }
-                    
+
                 })
             },
         },
@@ -400,46 +400,46 @@ def scannerLoop(event, context):
     global WITHDRAW_WORKFLOW_ARN
     TIP_WORKFLOW_ARN = event['tipWorkflowArn']
     WITHDRAW_WORKFLOW_ARN = event['withdrawWorkflowArn']
-    
+
     refreshOauthToken()
-    
+
     startTime = time.perf_counter()
-    
+
     while True:
         scanComments()
         scanMessages()
-        
+
         if time.perf_counter() - startTime > MAX_RUNTIME - POLL_INTERVAL:
             break
         time.sleep(POLL_INTERVAL)
-        
+
 def idAsInt(id):
     return int(id.split('_')[1], 36)
-    
+
 def scan(requestUrl, dataId, filter, handler):
     lastData = getData(dataId)
     hasLastData = 'Item' in lastData
-    
+
     if hasLastData:
         lastData = json.loads(lastData['Item']['Data']['S'])
-    
+
     success, requestData = requestGet(requestUrl)
-    
+
     if not success:
         return
-    
+
     if 'data' not in requestData:
         logger.error('Request failed: {} {}'.format(requestUrl, requestData))
         raise Exception('Reddit query failed')
-    
+
     dataElements = [a for a in requestData['data']['children'] if a['kind'] == filter]
-    
+
     if len(dataElements) == 0:
         return
-    
+
     names = [a['data']['name'] for a in dataElements]
     logger.info(str(names))
-    
+
     if hasLastData:
         for data in reversed(dataElements):
             if idAsInt(data['data']['name']) > idAsInt(lastData['data']['name']):
@@ -447,15 +447,15 @@ def scan(requestUrl, dataId, filter, handler):
                     handler(data)
                 except Exception as e:
                     logger.exception('Failed to parse {} {}'.format(data['data']['name'], e))
-        
+
         if idAsInt(dataElements[0]['data']['name']) > idAsInt(lastData['data']['name']):
             saveData(dataId, dataElements[0])
-        
+
     else:
         # Marks the first data as the last one parsed in the case that the
         # function is running for the first time.
         saveData(dataId, dataElements[0])
-        
+
 def scanMessages(event={}, context={}):
     logger.info('Scanning messages')
     scan(
@@ -464,7 +464,7 @@ def scanMessages(event={}, context={}):
         't4',
         handleMessage
     )
-        
+
 def scanComments(event={}, context={}):
     logger.info('Scanning comments')
     scan(

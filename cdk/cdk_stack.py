@@ -12,6 +12,8 @@ import aws_cdk.aws_sns as sns
 import aws_cdk.aws_sns_subscriptions as snss
 import aws_cdk.aws_stepfunctions as sfn
 import aws_cdk.aws_stepfunctions_tasks as tasks
+import aws_cdk.custom_resources as cr
+import hashlib
 import json
 import os
 import requests
@@ -30,7 +32,7 @@ class CdkStack(cdk.Stack):
         self.vpc = self.createVpc()
         self.lambdaRole = self.createLambdaRole()
         self.lambdaCode = lambda_.Code.from_asset(codeLocation)
-        self.lambdaLayer = lambda_.LayerVersion(self, 'lambdaLayer', 
+        self.lambdaLayer = lambda_.LayerVersion(self, 'lambdaLayer',
             code=lambda_.Code.from_asset(layerLocation),
             compatible_runtimes=[
                 lambda_.Runtime.PYTHON_3_8
@@ -63,7 +65,7 @@ class CdkStack(cdk.Stack):
                 agw.IntegrationResponse(
                     status_code='301',
                     response_parameters={
-                        'method.response.header.Location': '\'https://www.reddit.com/r/LNTipBot2/wiki/index\'',
+                        'method.response.header.Location': '\'https://www.reddit.com/r/lntipbot/wiki/index\'',
                         'method.response.header.Cache-Control': '\'max-age=300\''
                     }
                 )
@@ -99,14 +101,14 @@ class CdkStack(cdk.Stack):
         self.settledInvoiceHandler = self.createLambda('settledInvoiceHandler', 'settledInvoiceHandler.settledInvoiceHandler')
 
         self.createLambda('apiTest', 'lambda_function.lambda_handler')
-        
+
         withdrawWorkflow = self.createWithdrawWorkflow()
         tipWorkflow = self.createTipWorkflow()
-        
+
         events.Rule(self, 'redditCommentScannerEvent',
             schedule=events.Schedule.rate(cdk.Duration.minutes(1)),
             targets=[eventsTargets.LambdaFunction(
-                lambda_.Function(self, 'redditCommentScanner', 
+                lambda_.Function(self, 'redditCommentScanner',
                     code=self.lambdaCode,
                     runtime=lambda_.Runtime.PYTHON_3_8,
                     handler='scanComments.scannerLoop',
@@ -132,6 +134,60 @@ class CdkStack(cdk.Stack):
         self.createServer()
 
         self.createOps()
+
+        self.createWikiResources()
+
+    def createWikiResources(self):
+        wikiUpdater = self.createLambda('wikiUpdater', 'updateWiki.updateWiki')
+
+        wikiPath = 'lambdas/resources/wiki'
+
+        for subreddit in os.listdir(wikiPath):
+            subredditPath = wikiPath + '/' + subreddit
+
+            for page in os.listdir(subredditPath):
+                pagePath = subredditPath + '/' + page
+                id = (subreddit + '/' + page).replace('/', '_')
+
+                if not page.endswith('.md'):
+                    continue
+                pageName = page[0:-3]
+
+                with open(pagePath, 'rb') as file:
+                    fileContent = file.read()
+
+                    call = cr.AwsSdkCall(
+                        service='Lambda',
+                        action='invoke',
+                        physical_resource_id=cr.PhysicalResourceId.of(id),
+                        parameters={
+                            'FunctionName': wikiUpdater.function_name,
+                            'InvocationType': 'RequestResponse',
+                            'Payload': json.dumps({
+                                'subreddit': subreddit,
+                                'page': pageName,
+                                'dedupId': hashlib.md5(fileContent).hexdigest()
+                            })
+                        }
+                    )
+                    acr = cr.AwsCustomResource(self, id,
+                        on_create=call,
+                        on_update=call,
+                        install_latest_aws_sdk=False,
+                        policy=cr.AwsCustomResourcePolicy.from_statements([
+                            iam.PolicyStatement(
+                                actions=[
+                                    "lambda:InvokeFunction"
+                                ],
+                                effect=iam.Effect.ALLOW,
+                                resources=[
+                                    wikiUpdater.function_arn
+                                ]
+                            )
+                        ])
+                    )
+                    acr.node.add_dependency(wikiUpdater)
+
 
     def getEmail(self):
         if not os.path.exists('.tipbotconfiguration.json'):
@@ -194,7 +250,7 @@ class CdkStack(cdk.Stack):
         ).add_alarm_action(cwa.SnsAction(alarmTopic))
 
     def createVpc(self):
-        vpc = ec2.Vpc(self, 'serverVpc', 
+        vpc = ec2.Vpc(self, 'serverVpc',
             cidr='10.0.0.0/16',
             max_azs=1,
             nat_gateways=0,
@@ -221,7 +277,7 @@ class CdkStack(cdk.Stack):
 
             cfnSubnet = typing.cast(typing.Optional[ec2.CfnSubnet], subnet.node.default_child)
             cfnSubnet.ipv6_cidr_block = cdk.Fn.select(
-                idx, 
+                idx,
                 cdk.Fn.cidr(
                     cdk.Fn.select(0, vpc.vpc_ipv6_cidr_blocks),
                     256,
@@ -358,11 +414,11 @@ class CdkStack(cdk.Stack):
 
         if not ip1 == ip2:
             raise Exception
-        
+
         return ip1
 
     def createLambda(self, functionName, handlerName):
-        return lambda_.Function(self, functionName, 
+        return lambda_.Function(self, functionName,
             code=self.lambdaCode,
             runtime=lambda_.Runtime.PYTHON_3_8,
             handler=handlerName,
@@ -377,7 +433,7 @@ class CdkStack(cdk.Stack):
             timeout=cdk.Duration.seconds(300)
         ).next(sfn.Fail(self, 'tipErrorState'))
 
-        payInvoiceSucceeded = tasks.LambdaInvoke(self, 'payInvoiceSucceeded', 
+        payInvoiceSucceeded = tasks.LambdaInvoke(self, 'payInvoiceSucceeded',
             lambda_function=self.createLambda('payInvoiceSucceededLambda', 'payInvoiceSucceeded.payInvoiceSucceeded'),
             timeout=cdk.Duration.seconds(300)
         ).next(sfn.Succeed(self, 'tipSuccessState'))
@@ -437,8 +493,8 @@ class CdkStack(cdk.Stack):
     def installRequirements(self, path):
         outPath = f'{path}_deps'
         subprocess.check_call(f'pip install --upgrade -r {path}/requirements.txt -t {outPath}/python'.split())
-        
-        # pip includes __pycache__ which includes .pyc files that differ for every pip install 
+
+        # pip includes __pycache__ which includes .pyc files that differ for every pip install
         # that intereferes with cdk's code checksums causing unchanged assets to deploy every time
         subprocess.check_call(f'pyclean {outPath}'.split())
 

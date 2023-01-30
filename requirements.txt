@@ -10,3 +10,4 @@ aws-cdk.aws-stepfunctions-tasks
 aws_cdk.aws_cloudwatch_actions
 pyclean
 requests
+yawsso
