@@ -1,9 +1,6 @@
 #LNTipBot
 Send and receive tips via the ⚡⚡**[LIGHTNING NETWORK](https://lightning.network/)**⚡⚡
 
-###Updates
-* Minimum tip has been increased to ⚡︎500 (satoshis)
-
 ###Status
 * I sometimes do node maintenance on weekend nights, PST, during which time deposits and withdraws will be delayed.
 

@@ -70,7 +70,7 @@ Now your aws cli has a `dev2` profile that can be used for access.  Daily access
 aws sso login --profile dev2
 ```
 
-CDK 1 doesn't support it yet so use `yawsso` to copy the credentials over to a `dev2` profile in `~/.aws/credentials`.
+Use `yawsso` to copy the credentials over to a `dev2` profile in `~/.aws/credentials`.
 
 ```
 yawsso

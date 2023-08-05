@@ -1,18 +1,19 @@
-import aws_cdk.core as cdk
-import aws_cdk.aws_apigateway as agw
-import aws_cdk.aws_cloudwatch as cw
-import aws_cdk.aws_cloudwatch_actions as cwa
-import aws_cdk.aws_ec2 as ec2
-import aws_cdk.aws_events as events
-import aws_cdk.aws_events_targets as eventsTargets
-import aws_cdk.aws_lambda as lambda_
-import aws_cdk.aws_iam as iam
-import aws_cdk.aws_s3 as s3
-import aws_cdk.aws_sns as sns
-import aws_cdk.aws_sns_subscriptions as snss
-import aws_cdk.aws_stepfunctions as sfn
-import aws_cdk.aws_stepfunctions_tasks as tasks
-import aws_cdk.custom_resources as cr
+from aws_cdk import aws_apigateway as agw
+from aws_cdk import aws_cloudwatch as cw
+from aws_cdk import aws_cloudwatch_actions as cwa
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_events as events
+from aws_cdk import aws_events_targets as eventsTargets
+from aws_cdk import aws_lambda as lambda_
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_s3 as s3
+from aws_cdk import aws_sns as sns
+from aws_cdk import aws_sns_subscriptions as snss
+from aws_cdk import aws_stepfunctions as sfn
+from aws_cdk import aws_stepfunctions_tasks as tasks
+from aws_cdk import custom_resources as cr
+from aws_cdk import Duration, Fn, RemovalPolicy, Size, Stack
+from constructs import Construct
 import hashlib
 import json
 import os
@@ -20,9 +21,9 @@ import requests
 import subprocess
 import typing
 
-class CdkStack(cdk.Stack):
+class CdkStack(Stack):
 
-    def __init__(self, scope: cdk.Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
 
@@ -92,7 +93,7 @@ class CdkStack(cdk.Stack):
         )).add_method('GET')
 
         events.Rule(self, 'oauthRefreshEvent',
-            schedule=events.Schedule.rate(cdk.Duration.minutes(28)),
+            schedule=events.Schedule.rate(Duration.minutes(28)),
             targets=[eventsTargets.LambdaFunction(
                 self.createLambda('oauthFunction', 'redditOAuthRequester.redditOAuthRequester')
             )]
@@ -106,7 +107,7 @@ class CdkStack(cdk.Stack):
         tipWorkflow = self.createTipWorkflow()
 
         events.Rule(self, 'redditCommentScannerEvent',
-            schedule=events.Schedule.rate(cdk.Duration.minutes(1)),
+            schedule=events.Schedule.rate(Duration.minutes(1)),
             targets=[eventsTargets.LambdaFunction(
                 lambda_.Function(self, 'redditCommentScanner',
                     code=self.lambdaCode,
@@ -114,7 +115,7 @@ class CdkStack(cdk.Stack):
                     handler='scanComments.scannerLoop',
                     role=self.lambdaRole,
                     layers=[self.lambdaLayer],
-                    timeout=cdk.Duration.seconds(55),
+                    timeout=Duration.seconds(55),
                     reserved_concurrent_executions=1
                 ),
                 event=events.RuleTargetInput.from_object({
@@ -213,7 +214,7 @@ class CdkStack(cdk.Stack):
                     metric=cw.Metric(
                         metric_name='LndUp',
                         namespace='LNTipBot',
-                        period=cdk.Duration.minutes(1),
+                        period=Duration.minutes(1),
                         statistic='sum',
                         unit=cw.Unit.NONE,
                     ),
@@ -230,7 +231,7 @@ class CdkStack(cdk.Stack):
                     metric=cw.Metric(
                         metric_name='BtcUp',
                         namespace='LNTipBot',
-                        period=cdk.Duration.minutes(1),
+                        period=Duration.minutes(1),
                         statistic='sum',
                         unit=cw.Unit.NONE,
                     ),
@@ -276,10 +277,10 @@ class CdkStack(cdk.Stack):
             )
 
             cfnSubnet = typing.cast(typing.Optional[ec2.CfnSubnet], subnet.node.default_child)
-            cfnSubnet.ipv6_cidr_block = cdk.Fn.select(
+            cfnSubnet.ipv6_cidr_block = Fn.select(
                 idx,
-                cdk.Fn.cidr(
-                    cdk.Fn.select(0, vpc.vpc_ipv6_cidr_blocks),
+                Fn.cidr(
+                    Fn.select(0, vpc.vpc_ipv6_cidr_blocks),
                     256,
                     '64'
                 ))
@@ -360,17 +361,17 @@ class CdkStack(cdk.Stack):
                 ),
             ]
         )
-        securityGroup.apply_removal_policy(cdk.RemovalPolicy.RETAIN)
+        securityGroup.apply_removal_policy(RemovalPolicy.RETAIN)
 
         return securityGroup
 
     def createServer(self):
         volume = ec2.Volume(self, 'serverVolume2a',
-            removal_policy=cdk.RemovalPolicy.RETAIN,
+            removal_policy=RemovalPolicy.RETAIN,
             volume_type=ec2.EbsDeviceVolumeType.GP3,
             availability_zone='us-west-2a',
             snapshot_id='snap-0ca71aed81fe73771',
-            size=cdk.Size.gibibytes(16),
+            size=Size.gibibytes(16),
         )
         instance = ec2.Instance(self, 'serverVpcInstance',
             instance_type=ec2.InstanceType('t3a.small'),
@@ -382,7 +383,7 @@ class CdkStack(cdk.Stack):
             availability_zone='us-west-2a',
             key_name='tipbotkey', # must be created in advance
         )
-        instance.apply_removal_policy(cdk.RemovalPolicy.RETAIN)
+        instance.apply_removal_policy(RemovalPolicy.RETAIN)
 
         instance.node.default_child.volumes = [
             ec2.CfnInstance.VolumeProperty(
@@ -405,7 +406,7 @@ class CdkStack(cdk.Stack):
         ]
         # Need to attach this manually since we have a CfnSecurityGroup, not a SecurityGroup
         cfnInstance.security_group_ids = [
-            cdk.Fn.get_att(self.securityGroup.logical_id, 'GroupId').to_string()
+            Fn.get_att(self.securityGroup.logical_id, 'GroupId').to_string()
         ]
 
     def getIp(self):
@@ -424,29 +425,29 @@ class CdkStack(cdk.Stack):
             handler=handlerName,
             role=self.lambdaRole,
             layers=[self.lambdaLayer],
-            timeout=cdk.Duration.seconds(10)
+            timeout=Duration.seconds(10)
         )
 
     def createWithdrawWorkflow(self):
         payInvoiceFailed = tasks.LambdaInvoke(self, 'payInvoiceFailed',
             lambda_function=self.createLambda('payInvoiceFailedLambda', 'payInvoiceFailed.payInvoiceFailed'),
-            timeout=cdk.Duration.seconds(300)
+            timeout=Duration.seconds(300)
         ).next(sfn.Fail(self, 'tipErrorState'))
 
         payInvoiceSucceeded = tasks.LambdaInvoke(self, 'payInvoiceSucceeded',
             lambda_function=self.createLambda('payInvoiceSucceededLambda', 'payInvoiceSucceeded.payInvoiceSucceeded'),
-            timeout=cdk.Duration.seconds(300)
+            timeout=Duration.seconds(300)
         ).next(sfn.Succeed(self, 'tipSuccessState'))
 
         self.payInvoice = tasks.StepFunctionsInvokeActivity(self, 'payInvoice',
             activity=sfn.Activity(self, 'payInvoiceActivity'),
-            heartbeat=cdk.Duration.seconds(86400),
-            timeout=cdk.Duration.seconds(86400),
+            heartbeat=Duration.seconds(86400),
+            timeout=Duration.seconds(86400),
         )
         self.payInvoice.add_retry(
             backoff_rate=2,
             errors=['States.Timeout'],
-            interval=cdk.Duration.seconds(600),
+            interval=Duration.seconds(600),
             max_attempts=0
         )
         self.payInvoice.add_catch(
@@ -464,18 +465,18 @@ class CdkStack(cdk.Stack):
     def createTipWorkflow(self):
         notifyTipper = tasks.LambdaInvoke(self, 'notifyTipper',
             lambda_function=self.createLambda('notifyTipperLambda', 'tipNotifier.tipNotifier'),
-            timeout=cdk.Duration.seconds(300)
+            timeout=Duration.seconds(300)
         ).next(sfn.Succeed(self, 'withdrawSuccessState'))
 
         self.getTipperInvoice = tasks.StepFunctionsInvokeActivity(self, 'getTipperInvoice',
             activity=sfn.Activity(self, 'getTipperInvoiceActivity'),
-            heartbeat=cdk.Duration.seconds(60),
-            timeout=cdk.Duration.seconds(86400),
+            heartbeat=Duration.seconds(60),
+            timeout=Duration.seconds(86400),
         )
         self.getTipperInvoice.add_retry(
             backoff_rate=1.5,
             errors=['States.Timeout'],
-            interval=cdk.Duration.seconds(60),
+            interval=Duration.seconds(60),
             max_attempts=7
         )
         self.getTipperInvoice.add_catch(

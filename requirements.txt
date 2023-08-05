@@ -1,13 +1,5 @@
--e .
 wheel
-aws-cdk.core
-aws-cdk.aws-apigateway
-aws-cdk.aws-lambda
-aws-cdk.aws-lambda-python
-aws-cdk.aws-events
-aws-cdk.aws-events-targets
-aws-cdk.aws-stepfunctions-tasks
-aws_cdk.aws_cloudwatch_actions
-pyclean
-requests
-yawsso
+aws-cdk-lib==2.90.0
+pyclean==2.0.0
+requests==2.26.0
+yawsso==1.0.1
