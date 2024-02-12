@@ -1,5 +1,5 @@
-import rpc_pb2 as ln
-import rpc_pb2_grpc as lnrpc
+import lightning_pb2 as ln
+import lightning_pb2_grpc as lnrpc
 import invoices_pb2 as invoices
 import invoices_pb2_grpc as invoicesrpc
 import grpc
